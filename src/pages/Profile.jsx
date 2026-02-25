@@ -76,7 +76,9 @@ export default function Profile() {
       });
       if (r.ok) {
         const d = await r.json();
+        const updated = d.user || form;
         setProfile(prev => ({ ...prev, ...form }));
+        setUser(prev => ({ ...prev, name: updated.name || form.name, email: updated.email || form.email }));
         setEditing(false);
         showToast("Profile updated successfully!");
       } else {
