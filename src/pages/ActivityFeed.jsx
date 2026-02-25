@@ -58,12 +58,12 @@ export default function ActivityFeed() {
     setLoading(true);
     try {
       const endpoint = feedTab === "team"
-        ? `${API}/collab/activity/team?limit=30&page=${pageNum}`
-        : `${API}/collab/activity/mine?limit=30&page=${pageNum}`;
+        ? `${API}/collab/activity/team?limit=30`
+        : `${API}/collab/activity?limit=30&skip=${(pageNum - 1) * 30}`;
       const r = await authFetch(endpoint);
       if (r.ok) {
         const d = await r.json();
-        const incoming = d.events || d.activities || [];
+        const incoming = d.activities || d.events || [];
         setEvents(pageNum === 1 ? incoming : prev => [...prev, ...incoming]);
         setHasMore(incoming.length === 30);
       }
