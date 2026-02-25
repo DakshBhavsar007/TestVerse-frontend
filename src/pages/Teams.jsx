@@ -179,6 +179,18 @@ export default function Teams() {
     } catch (e) { setError(e.message); }
   };
 
+  const handleLeaveTeam = async () => {
+    if (!window.confirm(`Are you sure you want to leave ${team.name}?`)) return;
+    try {
+      const r = await authFetch(`${API}/teams/${team.team_id}/leave`, { method: "POST" });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.detail); }
+
+      const newTeamsData = teamsData.filter(t => t.team.team_id !== team.team_id);
+      setTeamsData(newTeamsData);
+      setSelectedTeamId(newTeamsData.length > 0 ? newTeamsData[0].team.team_id : null);
+    } catch (e) { setError(e.message); }
+  };
+
   const currentMember = members.find(m => m.email === user?.email);
   const isPending = currentMember && currentMember.accepted === false;
 
@@ -283,9 +295,13 @@ export default function Teams() {
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#e2e8f0" }}>{team.name}</div>
                   <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>Created {(team.created_at || "").slice(0, 10)}</div>
                 </div>
-                {isOwner && (
+                {isOwner ? (
                   <button onClick={handleDeleteTeam} style={{ padding: "8px 16px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     Delete Group
+                  </button>
+                ) : (
+                  <button onClick={handleLeaveTeam} style={{ padding: "8px 16px", borderRadius: 10, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Leave Group
                   </button>
                 )}
               </div>
