@@ -211,7 +211,7 @@ function UserMenu({ user, onLogout }) {
 
           {/* Menu items */}
           {[
-            { icon: "◈", label: "Profile", to: "/dashboard" },
+            { icon: "◈", label: "Profile", to: "/profile" },
             { icon: "⟡", label: "API Keys", to: "/apikeys" },
             { icon: "◇", label: "Billing", to: "/billing" },
           ].map(item => (
