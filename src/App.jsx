@@ -35,6 +35,7 @@ import CICDSettings from "./pages/CICDSettings";
 import CICDTriggers from "./pages/CICDTriggers";
 // Phase 8E
 import OpenAPIImport from "./pages/OpenAPIImport";
+import Profile from "./pages/Profile";
 import Navbar from "./pages/Navbar";
 
 function PrivateRoute({ children }) {
@@ -103,6 +104,9 @@ export default function App() {
 
           {/* Phase 8E */}
           <Route path="/openapi-import" element={<PrivateRoute><OpenAPIImport /></PrivateRoute>} />
+
+          {/* Profile */}
+          <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

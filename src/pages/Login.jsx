@@ -8,6 +8,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [role, setRole] = useState("developer");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +20,7 @@ export default function Login() {
     setError(""); setLoading(true);
     try {
       if (mode === "login") await login(form.email, form.password);
-      else await register(form.email, form.password, form.name);
+      else await register(form.email, form.password, form.name, role);
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -84,6 +85,38 @@ export default function Login() {
                   required={mode === "register"}
                 />
               </div>
+            </div>
+          )}
+
+          {mode === "register" && (
+            <div className="form-field">
+              <label className="role-label">Select Your Role</label>
+              <div className="role-options">
+                {[
+                  { id: "admin",     icon: "👑", label: "Admin",     desc: "Full access — billing, team, config",    color: "#f59e0b" },
+                  { id: "developer", icon: "💻", label: "Developer", desc: "Run tests, schedules, API keys",          color: "#6366f1" },
+                  { id: "viewer",    icon: "👁️",  label: "Viewer",    desc: "Read-only — results & reports",          color: "#6b7280" },
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setRole(r.id)}
+                    className={`role-option ${role === r.id ? "role-option--active" : ""}`}
+                    style={role === r.id ? { "--role-color": r.color } : {}}
+                  >
+                    <span className="role-icon">{r.icon}</span>
+                    <span className="role-text">
+                      <span className="role-name" style={role === r.id ? { color: r.color } : {}}>{r.label}</span>
+                      <span className="role-desc">{r.desc}</span>
+                    </span>
+                    <span className={`role-radio ${role === r.id ? "role-radio--checked" : ""}`}
+                      style={role === r.id ? { background: r.color, borderColor: r.color } : {}}>
+                      {role === r.id && "✓"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="role-hint">ℹ️ Can be changed later by an Admin.</p>
             </div>
           )}
 

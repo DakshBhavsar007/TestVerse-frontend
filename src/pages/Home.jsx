@@ -49,6 +49,10 @@ function GridBackground() {
           0%, 100% { transform: translateY(0px) scale(1); }
           50% { transform: translateY(-30px) scale(1.05); }
         }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.85); }
+        }
       `}</style>
     </div>
   );
@@ -152,8 +156,29 @@ export default function Home() {
   const [loginData, setLoginData] = useState({ url: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [realStats, setRealStats] = useState(null);
   const { authFetch } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch real-time stats from dashboard
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+        const res = await authFetch(`${API}/dashboard/stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setRealStats(data);
+        }
+      } catch (e) {
+        // silently fall back to defaults
+      }
+    };
+    fetchStats();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRun = async () => {
     const targetUrl = tab === "basic" ? url : loginData.url;
@@ -390,6 +415,26 @@ export default function Home() {
                         placeholder={placeholder}
                         value={loginData[key]}
                         onChange={e => setLoginData(d => ({ ...d, [key]: e.target.value }))}
+                        onFocus={e => {
+                          setFocused(true);
+                          e.target.style.borderColor = "rgba(99,102,241,0.6)";
+                          e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+                          e.target.style.background = "rgba(255,255,255,0.06)";
+                        }}
+                        onBlur={e => {
+                          setFocused(false);
+                          e.target.style.borderColor = "rgba(255,255,255,0.08)";
+                          e.target.style.boxShadow = "none";
+                          e.target.style.background = "rgba(255,255,255,0.04)";
+                        }}
+                        onMouseOver={e => {
+                          if (document.activeElement !== e.target)
+                            e.target.style.borderColor = "rgba(99,102,241,0.3)";
+                        }}
+                        onMouseOut={e => {
+                          if (document.activeElement !== e.target)
+                            e.target.style.borderColor = "rgba(255,255,255,0.08)";
+                        }}
                         style={{
                           boxSizing: "border-box", width: "100%", padding: "13px 16px",
                           background: "rgba(255,255,255,0.04)",
@@ -397,6 +442,7 @@ export default function Home() {
                           borderRadius: 12, fontSize: "0.95rem",
                           color: "#e2e8f0", fontFamily: "'DM Sans', sans-serif",
                           outline: "none",
+                          transition: "border-color 0.2s, box-shadow 0.2s, background 0.2s",
                         }}
                       />
                     </div>
@@ -467,16 +513,52 @@ export default function Home() {
 
         {/* ── STATS STRIP ─────────────────────────────────────────────── */}
         <div style={{ maxWidth: 840, margin: "0 auto 80px", padding: "0 24px" }}>
+          {realStats && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: "0.7rem", fontWeight: 700, color: "#10b981",
+                letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: "50%", background: "#10b981",
+                  boxShadow: "0 0 6px #10b981",
+                  animation: "pulse 2s ease-in-out infinite",
+                }} />
+                Live
+              </span>
+            </div>
+          )}
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
             gap: 1, background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, overflow: "hidden",
           }}>
             {[
-              { end: 2400000, suffix: "+", label: "Tests Run" },
-              { end: 98, suffix: "%", label: "Uptime Accuracy" },
-              { end: 50, suffix: "ms", label: "Avg Response" },
-              { end: 12000, suffix: "+", label: "Sites Monitored" },
+              {
+                end: realStats?.total_tests ?? 2400000,
+                suffix: "+",
+                label: "Tests Run",
+                live: !!realStats,
+              },
+              {
+                end: realStats?.uptime_accuracy ?? 98,
+                suffix: "%",
+                label: "Uptime Accuracy",
+                live: !!realStats,
+              },
+              {
+                end: realStats?.avg_response_ms ?? 50,
+                suffix: "ms",
+                label: "Avg Response",
+                live: !!realStats,
+              },
+              {
+                end: realStats?.sites_monitored ?? 12000,
+                suffix: "+",
+                label: "Sites Monitored",
+                live: !!realStats,
+              },
             ].map((s, i) => (
               <div key={i} style={{
                 padding: "32px 20px",

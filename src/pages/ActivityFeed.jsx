@@ -1,172 +1,196 @@
-/**
- * ActivityFeed.jsx — Phase 8B
- * Full-page activity feed / audit log
- */
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
-const ACTION_CONFIG = {
-  comment_added:       { icon: "💬", color: "#6366f1", label: "Added a comment" },
-  comment_deleted:     { icon: "🗑️", color: "#6b7280", label: "Deleted a comment" },
-  approval_requested:  { icon: "📋", color: "#f59e0b", label: "Requested approval" },
-  approval_approved:   { icon: "✅", color: "#10b981", label: "Approved a test" },
-  approval_rejected:   { icon: "❌", color: "#ef4444", label: "Rejected a test" },
+const EVENT_META = {
+  comment_added:       { icon: "💬", label: "Added a comment",       color: "#818cf8" },
+  comment_deleted:     { icon: "🗑️",  label: "Deleted a comment",     color: "#f87171" },
+  test_approved:       { icon: "✅", label: "Approved test",          color: "#34d399" },
+  test_rejected:       { icon: "❌", label: "Rejected test",          color: "#f87171" },
+  approval_requested:  { icon: "🔔", label: "Requested approval",     color: "#fbbf24" },
+  test_run:            { icon: "🧪", label: "Ran a test",             color: "#60a5fa" },
+  test_deleted:        { icon: "🗑️",  label: "Deleted a test",        color: "#f87171" },
+  schedule_created:    { icon: "📅", label: "Created a schedule",     color: "#a78bfa" },
+  monitor_created:     { icon: "📡", label: "Created a monitor",      color: "#34d399" },
+  role_assigned:       { icon: "🔄", label: "Role changed",           color: "#f59e0b" },
+  plan_change:         { icon: "💳", label: "Changed plan",           color: "#f59e0b" },
+  default:             { icon: "📌", label: "Activity",               color: "#6b7280" },
 };
 
-function timeAgo(iso) {
-  if (!iso) return "";
-  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
-  if (diff < 60) return "just now";
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function Avatar({ email }) {
-  const letter = (email || "?")[0].toUpperCase();
-  const colors = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
-  const color = colors[letter.charCodeAt(0) % colors.length];
-  return (
-    <div style={{
-      width: 34, height: 34, borderRadius: "50%", background: color,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0,
-    }}>{letter}</div>
-  );
+function groupByDay(events) {
+  const groups = {};
+  events.forEach(e => {
+    const day = new Date(e.timestamp).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    if (!groups[day]) groups[day] = [];
+    groups[day].push(e);
+  });
+  return groups;
 }
 
-function ActivityItem({ activity }) {
-  const cfg = ACTION_CONFIG[activity.action] || { icon: "📌", color: "#6b7280", label: activity.action };
+function Avatar({ name, size = 34 }) {
+  const initials = (name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const hue = (name || "?").charCodeAt(0) * 7 % 360;
   return (
-    <div style={{
-      display: "flex", gap: 12, padding: "14px 16px",
-      background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 12, transition: "border-color 0.2s",
-    }}>
-      <Avatar email={activity.user_email} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#c7d2fe" }}>{activity.user_email}</span>
-          <span style={{ fontSize: 18 }}>{cfg.icon}</span>
-          <span style={{ fontSize: 13, color: "#6b7280" }}>{cfg.label}</span>
-          {activity.entity_id && (
-            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 8,
-              background: "rgba(99,102,241,0.1)", color: "#818cf8", fontFamily: "monospace" }}>
-              {activity.entity_id.slice(0, 8)}…
-            </span>
-          )}
-        </div>
-        {activity.detail && (
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#4b5563", lineHeight: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {activity.detail}
-          </p>
-        )}
-      </div>
-      <div style={{ fontSize: 11, color: "#374151", whiteSpace: "nowrap", alignSelf: "flex-start", marginTop: 2 }}>
-        {timeAgo(activity.timestamp)}
-      </div>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: `hsl(${hue},45%,28%)`, border: "2px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.38, fontWeight: 800, color: "#e2e8f0", flexShrink: 0 }}>
+      {initials}
     </div>
   );
 }
 
 export default function ActivityFeed() {
-  const { token, user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [activities, setActivities] = useState([]);
+  const { authFetch, user } = useAuth();
+  const [events, setEvents]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("mine"); // "mine" | "team"
-  const [total, setTotal] = useState(0);
+  const [tab, setTab]         = useState("mine"); // mine | team
+  const [page, setPage]       = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const fetchFeed = useCallback(async () => {
-    if (!token) return;
+  const load = useCallback(async (feedTab = tab, pageNum = 1) => {
     setLoading(true);
     try {
-      const url = view === "team"
-        ? `${API}/collab/activity/team?limit=100`
-        : `${API}/collab/activity?limit=50`;
-      const res = await fetch(url, { headers });
-      const data = await res.json();
-      if (data.success) { setActivities(data.activities); setTotal(data.total); }
-    } catch (e) { console.error(e); }
+      const endpoint = feedTab === "team" ? `${API}/activity/team?limit=30&page=${pageNum}` : `${API}/activity/mine?limit=30&page=${pageNum}`;
+      const r = await authFetch(endpoint);
+      if (r.ok) {
+        const d = await r.json();
+        const incoming = d.events || d.activities || [];
+        setEvents(pageNum === 1 ? incoming : prev => [...prev, ...incoming]);
+        setHasMore(incoming.length === 30);
+      }
+    } catch {}
     finally { setLoading(false); }
-  }, [token, view]);
+  }, [authFetch, tab]);
 
-  useEffect(() => { fetchFeed(); }, [fetchFeed]);
+  useEffect(() => { setPage(1); load(tab, 1); }, [tab]);
 
-  // Group by date
-  const grouped = activities.reduce((acc, a) => {
-    const date = new Date(a.timestamp).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(a);
-    return acc;
-  }, {});
+  // Resolve display name for an event:
+  // Backend should store user_name, but fall back to user_email or "Unknown"
+  // If the event belongs to the current user, use their name from auth context
+  const resolveUserName = (event) => {
+    if (event.user_name && event.user_name !== "unknown") return event.user_name;
+    if (event.user_email) {
+      // Check if it matches current user
+      if (user?.email && event.user_email === user.email) return user.name || user.email;
+      return event.user_email.split("@")[0]; // use email prefix as fallback
+    }
+    if (event.user_id && user?.id && event.user_id === user.id) return user.name || user.email || "You";
+    return "Unknown";
+  };
 
-  const tabBtn = (v) => ({
-    padding: "6px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
-    border: view === v ? "1px solid rgba(99,102,241,0.4)" : "1px solid rgba(255,255,255,0.08)",
-    background: view === v ? "rgba(99,102,241,0.15)" : "transparent",
-    color: view === v ? "#818cf8" : "#6b7280",
-    transition: "all 0.2s",
-  });
+  const grouped = groupByDay(events);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080b12", fontFamily: "'DM Sans', 'Inter', sans-serif", color: "#e2e8f0" }}>
-      {/* Ambient */}
+    <div style={{ minHeight: "100vh", background: "#080b12", fontFamily: "'DM Sans',sans-serif", color: "#e2e8f0" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-        <div style={{ position: "absolute", top: -300, right: -200, width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: -80, left: "25%", width: 600, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.05) 0%,transparent 70%)", filter: "blur(60px)" }} />
       </div>
 
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
         {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.6px", margin: 0, background: "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ margin: "0 0 6px", fontSize: 28, fontWeight: 800, letterSpacing: "-0.7px", background: "linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             Activity Feed
           </h1>
-          <p style={{ fontSize: 14, color: "#4b5563", margin: "6px 0 0" }}>Track all collaboration activity across your tests</p>
+          <p style={{ margin: 0, fontSize: 14, color: "#4b5563" }}>Track all collaboration activity across your tests</p>
         </div>
 
-        {/* Tabs + stats */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button style={tabBtn("mine")} onClick={() => setView("mine")}>My Activity</button>
-            <button style={tabBtn("team")} onClick={() => setView("team")}>Team Feed</button>
+        {/* Tabs + count */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 4 }}>
+            {[{ id: "mine", label: "My Activity" }, { id: "team", label: "Team Feed" }].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                padding: "8px 20px", borderRadius: 7, border: "none", cursor: "pointer",
+                background: tab === t.id ? "rgba(99,102,241,0.25)" : "transparent",
+                color: tab === t.id ? "#818cf8" : "#6b7280",
+                fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+              }}>{t.label}</button>
+            ))}
           </div>
-          <span style={{ fontSize: 12, color: "#374151" }}>{total} events</span>
+          <span style={{ fontSize: 12, color: "#374151" }}>{events.length} event{events.length !== 1 ? "s" : ""}</span>
         </div>
 
         {/* Feed */}
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid rgba(99,102,241,0.2)", borderTop: "3px solid #6366f1", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
-            <p style={{ color: "#4b5563", fontSize: 14 }}>Loading activity…</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        {loading && events.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid rgba(99,102,241,0.2)", borderTop: "3px solid #6366f1", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
+            <div style={{ color: "#4b5563", fontSize: 14 }}>Loading activity...</div>
           </div>
-        ) : activities.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16 }}>
+        ) : events.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16 }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#4b5563" }}>No activity yet</p>
-            <p style={{ margin: "6px 0 0", fontSize: 13, color: "#374151" }}>Activity will appear here as you comment and review tests.</p>
+            <div style={{ color: "#4b5563", fontSize: 14 }}>No activity yet. Run a test or add a comment to get started.</div>
           </div>
         ) : (
-          Object.entries(grouped).map(([date, items]) => (
-            <div key={date} style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 12, color: "#4b5563", fontWeight: 600 }}>{date}</span>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            {Object.entries(grouped).map(([day, dayEvents]) => (
+              <div key={day}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  {day}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {dayEvents.map(event => {
+                    const meta = EVENT_META[event.action] || EVENT_META[event.type] || EVENT_META.default;
+                    const name = resolveUserName(event);
+                    const isCurrentUser = name === (user?.name || user?.email?.split("@")[0]);
+                    const shortId = (event.entity_id || event.resource_id || event.test_id || "").slice(0, 8);
+
+                    return (
+                      <div key={event._id || event.activity_id || event.log_id || Math.random()} style={{
+                        display: "flex", alignItems: "flex-start", gap: 12,
+                        padding: "14px 16px",
+                        background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+                        borderRadius: 12, transition: "background 0.15s",
+                      }}
+                        onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
+                        onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+                      >
+                        <Avatar name={name} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: isCurrentUser ? "#818cf8" : "#e2e8f0" }}>{name}</span>
+                            <span style={{ fontSize: 16 }}>{meta.icon}</span>
+                            <span style={{ fontSize: 13, color: "#9ca3af" }}>{meta.label}</span>
+                            {shortId && (
+                              <span style={{ fontSize: 11, padding: "2px 7px", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 5, color: "#a78bfa", fontFamily: "monospace" }}>
+                                {shortId}…
+                              </span>
+                            )}
+                          </div>
+                          {event.details?.comment && (
+                            <div style={{ marginTop: 5, padding: "8px 12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 8, fontSize: 12, color: "#9ca3af", fontStyle: "italic", maxWidth: 560 }}>
+                              "{event.details.comment.length > 120 ? event.details.comment.slice(0, 120) + "…" : event.details.comment}"
+                            </div>
+                          )}
+                          {event.details?.message && !event.details?.comment && (
+                            <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>{event.details.message}</div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#374151", flexShrink: 0 }}>{timeAgo(event.timestamp)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {items.map(a => <ActivityItem key={a.activity_id} activity={a} />)}
-              </div>
-            </div>
-          ))
+            ))}
+
+            {hasMore && (
+              <button onClick={() => { const next = page + 1; setPage(next); load(tab, next); }} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "transparent", color: "#6b7280", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                {loading ? "Loading..." : "Load more"}
+              </button>
+            )}
+          </div>
         )}
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
