@@ -7,33 +7,33 @@ const NAV_GROUPS = [
     label: "Core",
     items: [
       { to: "/dashboard", icon: "▦", label: "Dashboard" },
-      { to: "/history",   icon: "◷", label: "History" },
-      { to: "/trends",    icon: "↗", label: "Trends" },
-      { to: "/monitoring",icon: "◉", label: "Monitors" },
+      { to: "/history", icon: "◷", label: "History" },
+      { to: "/trends", icon: "↗", label: "Trends" },
+      { to: "/monitoring", icon: "◉", label: "Monitors" },
     ],
   },
   {
     label: "Schedule",
     items: [
       { to: "/schedules", icon: "⊡", label: "Schedules" },
-      { to: "/bulk",      icon: "⊞", label: "Bulk Test" },
+      { to: "/bulk", icon: "⊞", label: "Bulk Test" },
     ],
   },
   {
     label: "Team",
     items: [
-      { to: "/teams",     icon: "⊛", label: "Teams" },
-      { to: "/roles",     icon: "◈", label: "Roles" },
-      { to: "/slack",     icon: "◎", label: "Slack" },
+      { to: "/teams", icon: "⊛", label: "Teams" },
+      { to: "/roles", icon: "◈", label: "Roles" },
+      { to: "/slack", icon: "◎", label: "Slack" },
     ],
   },
   {
     label: "Config",
     items: [
-      { to: "/apikeys",    icon: "⟡", label: "API Keys" },
-      { to: "/analytics",  icon: "◬", label: "Analytics" },
+      { to: "/apikeys", icon: "⟡", label: "API Keys" },
+      { to: "/analytics", icon: "◬", label: "Analytics" },
       { to: "/whitelabel", icon: "◇", label: "Branding" },
-      { to: "/billing",    icon: "◆", label: "Billing" },
+      { to: "/billing", icon: "◆", label: "Billing" },
     ],
   },
 ];
@@ -148,6 +148,7 @@ function CommandPalette({ open, onClose }) {
 function UserMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -194,16 +195,23 @@ function UserMenu({ user, onLogout }) {
 
           {/* Menu items */}
           {[
-            { icon: "◈", label: "Profile" },
+            { icon: "◈", label: "Profile", to: "/dashboard" },
             { icon: "⟡", label: "API Keys", to: "/apikeys" },
             { icon: "◇", label: "Billing", to: "/billing" },
           ].map(item => (
-            <button key={item.label} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 16px", border: "none", background: "transparent",
-              color: "#9ca3af", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-              fontSize: "0.875rem", transition: "all 0.15s", textAlign: "left",
-            }}
+            <button key={item.label}
+              onClick={() => {
+                if (item.to) {
+                  navigate(item.to);
+                  setOpen(false);
+                }
+              }}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 16px", border: "none", background: "transparent",
+                color: "#9ca3af", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                fontSize: "0.875rem", transition: "all 0.15s", textAlign: "left",
+              }}
               onMouseOver={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#e2e8f0"; }}
               onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9ca3af"; }}
             >
@@ -215,7 +223,10 @@ function UserMenu({ user, onLogout }) {
           <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "4px 0" }} />
 
           <button
-            onClick={onLogout}
+            onClick={() => {
+              onLogout();
+              navigate("/login");
+            }}
             style={{
               width: "100%", display: "flex", alignItems: "center", gap: 10,
               padding: "10px 16px", border: "none", background: "transparent",
@@ -263,8 +274,8 @@ function NavStrip({ location }) {
                 background: isAnyActive
                   ? "rgba(99,102,241,0.15)"
                   : isOpen || hoveredGroup === group.label
-                  ? "rgba(255,255,255,0.05)"
-                  : "transparent",
+                    ? "rgba(255,255,255,0.05)"
+                    : "transparent",
                 color: isAnyActive ? "#c4b5fd" : "#6b7280",
                 cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                 fontSize: "0.82rem", fontWeight: 600,
