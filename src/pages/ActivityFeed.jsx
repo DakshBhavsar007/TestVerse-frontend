@@ -57,7 +57,9 @@ export default function ActivityFeed() {
   const load = useCallback(async (feedTab = tab, pageNum = 1) => {
     setLoading(true);
     try {
-      const endpoint = feedTab === "team" ? `${API}/activity/team?limit=30&page=${pageNum}` : `${API}/activity/mine?limit=30&page=${pageNum}`;
+      const endpoint = feedTab === "team"
+        ? `${API}/collab/activity/team?limit=30&page=${pageNum}`
+        : `${API}/collab/activity/mine?limit=30&page=${pageNum}`;
       const r = await authFetch(endpoint);
       if (r.ok) {
         const d = await r.json();
