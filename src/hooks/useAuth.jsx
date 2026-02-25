@@ -12,7 +12,7 @@ const AuthContext = createContext(null);
 function _decodeUser(token) {
   try {
     const p = JSON.parse(atob(token.split(".")[1]));
-    return { email: p.sub, name: p.name };
+    return { email: p.sub, name: p.name, id: p.id || p.sub };
   } catch { return null; }
 }
 
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
   }, [token, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, authFetch, isLoggedIn: !!token }}>
+    <AuthContext.Provider value={{ user, setUser, token, login, register, logout, authFetch, isLoggedIn: !!token }}>
       {children}
     </AuthContext.Provider>
   );
