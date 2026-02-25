@@ -151,7 +151,12 @@ curl -X POST ${API}/run \\
               <div key={k.key_id} style={{ display: "grid", gridTemplateColumns: "1fr 180px 140px 80px", padding: "14px 20px", alignItems: "center", borderBottom: i < keys.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0" }}>{k.name}</div>
-                  <code style={{ fontSize: 11, color: "#4b5563", fontFamily: "monospace" }}>{k.key_preview}</code>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <code style={{ fontSize: 11, color: "#4b5563", fontFamily: "monospace" }}>{k.key_preview}</code>
+                    <button onClick={() => navigator.clipboard.writeText(k.key_preview)} title="Copy Preview (Cannot be used for API requests)" style={{ background: "none", border: "none", color: "#6b7280", padding: "2px", cursor: "pointer", fontSize: 12 }}>
+                      📋
+                    </button>
+                  </div>
                 </div>
                 <div style={{ fontSize: 12, color: "#6b7280" }}>
                   {k.created_at ? new Date(k.created_at).toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "Unknown"}
