@@ -22,7 +22,8 @@ export default function TeamChat({ team, members, onSettingsChanged }) {
     const isOwner = team.owner_id === user?.id || team.owner_email === user?.email;
     const myMember = members.find(m => m.email === user?.email);
     const isAdmin = myMember?.role === "admin" || myMember?.role === "owner" || isOwner;
-    const canChat = !team.admins_only_chat || isAdmin;
+    const isPending = myMember && myMember.accepted === false;
+    const canChat = !isPending && (!team.admins_only_chat || isAdmin);
 
     useEffect(() => {
         setMessages([]);
@@ -129,7 +130,7 @@ export default function TeamChat({ team, members, onSettingsChanged }) {
             <form onSubmit={send} style={{ display: "flex", padding: "12px", background: "rgba(0,0,0,0.2)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <input
                     value={text} onChange={e => setText(e.target.value)}
-                    placeholder={canChat ? "Type a message..." : "Only admins can send messages"}
+                    placeholder={isPending ? "Accept invitation to chat" : (canChat ? "Type a message..." : "Only admins can send messages")}
                     disabled={!canChat}
                     style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#e2e8f0", outline: "none", fontSize: 14 }}
                 />

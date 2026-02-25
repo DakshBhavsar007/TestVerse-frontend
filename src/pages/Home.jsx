@@ -568,7 +568,7 @@ export default function Home() {
             </div>
           )}
           <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 1, background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20,
           }}>

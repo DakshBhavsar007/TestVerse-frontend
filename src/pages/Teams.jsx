@@ -179,6 +179,36 @@ export default function Teams() {
     } catch (e) { setError(e.message); }
   };
 
+  const currentMember = members.find(m => m.email === user?.email);
+  const isPending = currentMember && currentMember.accepted === false;
+
+  const handleRespondToInvite = async (accept) => {
+    try {
+      const r = await authFetch(`${API}/teams/${team.team_id}/members/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accept })
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.detail); }
+
+      if (accept) {
+        setTeamsData(prev => prev.map(t => {
+          if (t.team.team_id === team.team_id) {
+            return {
+              ...t,
+              members: t.members.map(m => m.email === user?.email ? { ...m, accepted: true } : m)
+            };
+          }
+          return t;
+        }));
+      } else {
+        const newTeamsData = teamsData.filter(t => t.team.team_id !== team.team_id);
+        setTeamsData(newTeamsData);
+        setSelectedTeamId(newTeamsData.length > 0 ? newTeamsData[0].team.team_id : null);
+      }
+    } catch (e) { setError(e.message); }
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#080b12", fontFamily: "'DM Sans','Inter',sans-serif", color: "#e2e8f0" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
@@ -259,6 +289,20 @@ export default function Teams() {
                   </button>
                 )}
               </div>
+
+              {/* Pending Invite Banner */}
+              {isPending && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05))", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 16, padding: "16px 24px" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#f59e0b", marginBottom: 4 }}>You have been invited to this group</div>
+                    <div style={{ fontSize: 13, color: "#d97706" }}>Accept this invitation to participate in the chat and view tasks.</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => handleRespondToInvite(true)} style={{ padding: "8px 20px", borderRadius: 8, background: "#f59e0b", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Accept</button>
+                    <button onClick={() => handleRespondToInvite(false)} style={{ padding: "8px 16px", borderRadius: 8, background: "transparent", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Reject</button>
+                  </div>
+                </div>
+              )}
 
               {/* Chat and Members Split */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>

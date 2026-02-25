@@ -135,6 +135,9 @@ body {
 .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .form-hint { font-size: 0.78rem; color: var(--text-muted); }
 
+/* ── Select Options ─────────────────────────────────────────── */
+option { background: var(--bg-2); color: var(--text); font-family: inherit; }
+
 /* ── Buttons ────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
