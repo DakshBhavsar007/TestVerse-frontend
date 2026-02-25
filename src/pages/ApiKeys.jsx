@@ -15,6 +15,7 @@ export default function ApiKeys() {
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState(null);   // shown once after creation
   const [copied, setCopied] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
   const [error, setError] = useState("");
   const [revoking, setRevoking] = useState(null);
 
@@ -108,8 +109,17 @@ export default function ApiKeys() {
         </div>
 
         {/* How to use */}
-        <div style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 14, padding: "18px 22px", marginBottom: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", marginBottom: 10 }}>Usage — add to any API request:</div>
+        <div style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 14, padding: "18px 22px", marginBottom: 24, position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8" }}>Usage — add to any API request:</div>
+            <button onClick={() => {
+              navigator.clipboard.writeText(`# Run a test via API\ncurl -X POST ${API}/run \\\n  -H "X-API-Key: tv_your_key_here" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://yoursite.com"}'`);
+              setCopiedCurl(true);
+              setTimeout(() => setCopiedCurl(false), 2000);
+            }} style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 6, padding: "4px 8px", color: "#a5b4fc", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              {copiedCurl ? "✓ Copied!" : "Copy code"}
+            </button>
+          </div>
           <code style={{ display: "block", background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "12px 14px", fontSize: 12, color: "#a5b4fc", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
             {`# Run a test via API
 curl -X POST ${API}/run \\
