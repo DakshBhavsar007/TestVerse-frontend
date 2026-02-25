@@ -12,6 +12,7 @@ const AuthContext = createContext(null);
 function _decodeUser(token) {
   try {
     const p = JSON.parse(atob(token.split(".")[1]));
+    // Include id so components like Profile can reference it
     return { email: p.sub, name: p.name, id: p.id || p.sub };
   } catch { return null; }
 }
@@ -29,11 +30,12 @@ export function AuthProvider({ children }) {
     setUser(userData);
   }, []);
 
-  const register = useCallback(async (email, password, name) => {
+  // role param forwarded to backend so new users get correct role assigned
+  const register = useCallback(async (email, password, name, role = "developer") => {
     const res = await fetch(`${API}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, role }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Registration failed");
