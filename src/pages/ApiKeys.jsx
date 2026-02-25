@@ -113,7 +113,8 @@ export default function ApiKeys() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8" }}>Usage — add to any API request:</div>
             <button onClick={() => {
-              navigator.clipboard.writeText(`# Run a test via API\ncurl -X POST ${API}/run \\\n  -H "X-API-Key: tv_your_key_here" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://yoursite.com"}'`);
+              const currentKey = newKey ? newKey.key : "tv_your_key_here";
+              navigator.clipboard.writeText(`# Run a test via API\ncurl -X POST ${API}/run \\\n  -H "X-API-Key: ${currentKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://yoursite.com"}'`);
               setCopiedCurl(true);
               setTimeout(() => setCopiedCurl(false), 2000);
             }} style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 6, padding: "4px 8px", color: "#a5b4fc", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
@@ -123,7 +124,7 @@ export default function ApiKeys() {
           <code style={{ display: "block", background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "12px 14px", fontSize: 12, color: "#a5b4fc", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
             {`# Run a test via API
 curl -X POST ${API}/run \\
-  -H "X-API-Key: tv_your_key_here" \\
+  -H "X-API-Key: ${newKey ? newKey.key : 'tv_your_key_here'}" \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://yoursite.com"}'`}
           </code>
