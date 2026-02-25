@@ -10,13 +10,13 @@
 .login-card {
   width: 100%;
   max-width: 480px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   padding: 56px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
   animation: cardFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -64,14 +64,15 @@
   padding: 12px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #94a3b8; /* gray-400 */
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 200ms ease-in-out;
   position: relative;
 }
 
 .tab-button:hover {
   color: #ffffff;
+  transform: scale(1.02);
 }
 
 .tab-button.active {
@@ -112,7 +113,7 @@
   color: #ffffff;
   font-size: 16px;
   outline: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 200ms ease-in-out;
 }
 
 .auth-input::placeholder {
@@ -122,11 +123,45 @@
 .auth-input:focus {
   border-color: #6366f1; /* indigo-500 */
   background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
-.password-field {
-  margin-bottom: 8px; /* Extra spacing handled by gap and individual margin if needed */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease-in-out;
+}
+
+.password-toggle:hover {
+  color: #ffffff;
+}
+
+.forgot-password {
+  display: block;
+  text-align: right;
+  font-size: 14px;
+  color: #818cf8; /* indigo-400 */
+  text-decoration: none;
+  margin-top: 8px;
+  transition: color 0.2s ease-in-out;
+}
+
+.forgot-password:hover {
+  color: #a5b4fc; /* indigo-300 */
 }
 
 .submit-button {
@@ -139,7 +174,7 @@
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 200ms ease-in-out;
   margin-top: 12px;
   display: flex;
   align-items: center;
