@@ -41,6 +41,8 @@ export default function TeamChat({ team, members, onSettingsChanged }) {
             if (data.error) {
                 setError(data.error);
                 setTimeout(() => setError(""), 5000);
+            } else if (data.deleted_msg_id) {
+                setMessages(prev => prev.filter(m => m.msg_id !== data.deleted_msg_id));
             } else if (data.msg_id) {
                 setMessages(prev => [...prev, data]);
             }
@@ -58,6 +60,13 @@ export default function TeamChat({ team, members, onSettingsChanged }) {
         if (!text.trim() || !ws.current || !canChat) return;
         ws.current.send(JSON.stringify({ text, user_name: user?.name || user?.email.split("@")[0] }));
         setText("");
+    };
+
+    const handleDeleteMessage = async (msg_id) => {
+        if (!isOwner) return;
+        try {
+            await authFetch(`${API}/chat/${team.team_id}/messages/${msg_id}`, { method: "DELETE" });
+        } catch { }
     };
 
     const toggleAdminsOnly = async () => {
@@ -110,8 +119,13 @@ export default function TeamChat({ team, members, onSettingsChanged }) {
                             }}>
                                 {m.text}
                             </div>
-                            <div style={{ fontSize: 10, color: "#6b7280", marginTop: 4 }}>
-                                {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                <div style={{ fontSize: 10, color: "#6b7280" }}>
+                                    {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                {isOwner && (
+                                    <button onClick={() => handleDeleteMessage(m.msg_id)} style={{ padding: "2px 6px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 4, color: "#f87171", cursor: "pointer", fontSize: 9 }}>Delete</button>
+                                )}
                             </div>
                         </div>
                     );

@@ -111,6 +111,25 @@ export default function AdminDashboard() {
         } catch (e) { setError(e.message); }
     };
 
+    const handleToggleActive = async (u) => {
+        if (u.email === user?.email) {
+            setError("Cannot deactivate yourself.");
+            return;
+        }
+        const newStatus = u.is_active === false ? true : false;
+        if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} ${u.email}?`)) return;
+        try {
+            const r = await authFetch(`${API}/admin/users/${u.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_active: newStatus })
+            });
+            if (!r.ok) throw new Error("Update failed");
+            setUsers(prev => prev.map(usr => usr.id === u.id ? { ...usr, is_active: newStatus } : usr));
+            showMsg(`User ${newStatus ? 'activated' : 'deactivated'}.`);
+        } catch (e) { setError(e.message); }
+    };
+
     // Team Actions
     const handleDeleteTeam = async (t_id, name) => {
         if (!confirm(`Are you sure you want to delete team '${name}'?`)) return;
@@ -182,7 +201,12 @@ export default function AdminDashboard() {
                                     <tbody>
                                         {users.map(u => (
                                             <tr key={u.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                                                <td style={{ padding: "12px", fontWeight: 600 }}>{u.email}</td>
+                                                <td style={{ padding: "12px", fontWeight: 600 }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: u.is_active === false ? "#ef4444" : "#10b981" }} />
+                                                        <span style={{ opacity: u.is_active === false ? 0.5 : 1 }}>{u.email}</span>
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: "12px" }}>
                                                     {editUser === u.id ? (
                                                         <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={{ background: "#000", border: "1px solid #333", color: "#fff", padding: "4px 8px", borderRadius: 4 }} />
@@ -200,7 +224,9 @@ export default function AdminDashboard() {
                                                     )}
                                                 </td>
                                                 <td style={{ padding: "12px", textAlign: "right", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                                                    {editUser === u.id ? (
+                                                    {u.email === user?.email ? (
+                                                        <span style={{ color: "#9ca3af", fontSize: 12, fontWeight: 700, padding: "6px 14px" }}>You (Protected)</span>
+                                                    ) : editUser === u.id ? (
                                                         <>
                                                             <button style={BTN_SAVE} onClick={() => handleSaveUser(u.id)}>Save</button>
                                                             <button style={{ ...BTN_DEL, background: "transparent", color: "#9ca3af" }} onClick={() => setEditUser(null)}>Cancel</button>
@@ -208,6 +234,7 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <>
                                                             <button style={{ ...BTN_SAVE, background: "rgba(99,102,241,0.15)", color: "#818cf8" }} onClick={() => handleEditUserClick(u)}>Edit</button>
+                                                            <button style={{ ...BTN_SAVE, background: u.is_active === false ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: u.is_active === false ? "#10b981" : "#f59e0b" }} onClick={() => handleToggleActive(u)}>{u.is_active === false ? "Activate" : "Deactivate"}</button>
                                                             <button style={BTN_DEL} onClick={() => handleDeleteUser(u.id, u.email)}>Delete</button>
                                                         </>
                                                     )}

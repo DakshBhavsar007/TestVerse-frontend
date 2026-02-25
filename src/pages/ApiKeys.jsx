@@ -9,13 +9,13 @@ export default function ApiKeys() {
   const { authFetch, user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [keys, setKeys]         = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [newName, setNewName]   = useState("");
+  const [keys, setKeys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [newKey, setNewKey]     = useState(null);   // shown once after creation
-  const [copied, setCopied]     = useState(false);
-  const [error, setError]       = useState("");
+  const [newKey, setNewKey] = useState(null);   // shown once after creation
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
   const [revoking, setRevoking] = useState(null);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function ApiKeys() {
         <div style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 14, padding: "18px 22px", marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", marginBottom: 10 }}>Usage — add to any API request:</div>
           <code style={{ display: "block", background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "12px 14px", fontSize: 12, color: "#a5b4fc", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
-{`# Run a test via API
+            {`# Run a test via API
 curl -X POST ${API}/run \\
   -H "X-API-Key: tv_your_key_here" \\
   -H "Content-Type: application/json" \\
@@ -142,9 +142,11 @@ curl -X POST ${API}/run \\
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0" }}>{k.name}</div>
                   <code style={{ fontSize: 11, color: "#4b5563", fontFamily: "monospace" }}>{k.key_preview}</code>
                 </div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>{(k.created_at || "").slice(0, 10)}</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  {k.created_at ? new Date(k.created_at).toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "Unknown"}
+                </div>
                 <div style={{ fontSize: 12, color: k.last_used ? "#9ca3af" : "#374151" }}>
-                  {k.last_used ? (k.last_used || "").slice(0, 10) : "Never used"}
+                  {k.last_used ? new Date(k.last_used).toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "Never used"}
                 </div>
                 <div>
                   <button onClick={() => handleRevoke(k.key_id)} disabled={revoking === k.key_id}
