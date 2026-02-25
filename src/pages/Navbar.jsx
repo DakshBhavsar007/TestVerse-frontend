@@ -263,7 +263,7 @@ function UserMenu({ user, onLogout }) {
 }
 
 // ─── Scrolling nav strip with groups ────────────────────────────────────────
-function NavStrip({ location, systemRole, pendingInvites }) {
+function NavStrip({ location, systemRole, pendingInvites, user }) {
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const [activeGroupOpen, setActiveGroupOpen] = useState(null);
   const dropRef = useRef(null);
@@ -278,7 +278,7 @@ function NavStrip({ location, systemRole, pendingInvites }) {
     <div style={{ display: "flex", alignItems: "center", gap: 2 }} ref={dropRef}>
       {NAV_GROUPS.map(group => {
         const filteredItems = group.items.filter(i => {
-          if (i.label === "System Admin" && systemRole !== "admin") return false;
+          if (i.label === "System Admin" && user?.email !== "admin@testverse.com") return false;
           return true;
         });
 
@@ -498,7 +498,7 @@ export default function Navbar({ user, onLogout }) {
 
         {/* ── Nav groups ─────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <NavStrip location={location} systemRole={systemRole} pendingInvites={pendingInvites} />
+          <NavStrip location={location} systemRole={systemRole} pendingInvites={pendingInvites} user={user} />
         </div>
 
         {/* ── Right side ─────────────────────────────────────────────── */}

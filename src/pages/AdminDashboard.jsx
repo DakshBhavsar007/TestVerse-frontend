@@ -30,6 +30,13 @@ export default function AdminDashboard() {
     const loadData = async () => {
         setLoading(true);
         setError("");
+
+        // Strict global check for system admin email
+        if (user?.email !== "admin@testverse.com") {
+            navigate("/");
+            return;
+        }
+
         try {
             const roleRes = await authFetch(`${API}/rbac/my-role`);
             if (roleRes.ok) {
