@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -9,6 +10,7 @@ const BTN_SAVE = { background: "linear-gradient(135deg, #10b981, #059669)", bord
 
 export default function AdminDashboard() {
     const { authFetch, user } = useAuth();
+    const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState("overview");
     const [stats, setStats] = useState(null);
@@ -29,6 +31,18 @@ export default function AdminDashboard() {
         setLoading(true);
         setError("");
         try {
+            const roleRes = await authFetch(`${API}/rbac/my-role`);
+            if (roleRes.ok) {
+                const roleData = await roleRes.json();
+                if (roleData.role !== "admin") {
+                    navigate("/");
+                    return;
+                }
+            } else {
+                navigate("/");
+                return;
+            }
+
             if (activeTab === "overview") {
                 const r = await authFetch(`${API}/admin/overview`);
                 if (!r.ok) throw new Error(await r.text());

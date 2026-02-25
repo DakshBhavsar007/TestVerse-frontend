@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 // ─── Nav structure ─────────────────────────────────────────────────────────
 const NAV_GROUPS = [
@@ -262,7 +263,7 @@ function UserMenu({ user, onLogout }) {
 }
 
 // ─── Scrolling nav strip with groups ────────────────────────────────────────
-function NavStrip({ location }) {
+function NavStrip({ location, systemRole, pendingInvites }) {
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const [activeGroupOpen, setActiveGroupOpen] = useState(null);
   const dropRef = useRef(null);
@@ -276,8 +277,16 @@ function NavStrip({ location }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 2 }} ref={dropRef}>
       {NAV_GROUPS.map(group => {
-        const isAnyActive = group.items.some(i => location.pathname === i.to || location.pathname.startsWith(i.to + "/"));
+        const filteredItems = group.items.filter(i => {
+          if (i.label === "System Admin" && systemRole !== "admin") return false;
+          return true;
+        });
+
+        if (filteredItems.length === 0) return null;
+
+        const isAnyActive = filteredItems.some(i => location.pathname === i.to || location.pathname.startsWith(i.to + "/"));
         const isOpen = activeGroupOpen === group.label;
+        const totalPending = group.label === "Team" ? pendingInvites : 0;
 
         return (
           <div key={group.label} style={{ position: "relative" }}>
@@ -300,7 +309,12 @@ function NavStrip({ location }) {
                 borderBottom: isAnyActive ? "1px solid rgba(99,102,241,0.35)" : "1px solid transparent",
               }}
             >
-              {group.label}
+              <div style={{ position: "relative" }}>
+                {group.label}
+                {totalPending > 0 && (
+                  <span style={{ position: "absolute", top: -6, right: -12, background: "#ef4444", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 10 }}>{totalPending}</span>
+                )}
+              </div>
               <span style={{
                 fontSize: "0.6rem", opacity: 0.6,
                 transition: "transform 0.2s",
@@ -321,8 +335,9 @@ function NavStrip({ location }) {
                 animation: "cmdDrop 0.18s ease both",
                 zIndex: 500,
               }}>
-                {group.items.map(item => {
+                {filteredItems.map(item => {
                   const active = location.pathname === item.to;
+                  const itemPending = item.label === "Teams" ? pendingInvites : 0;
                   return (
                     <NavLink
                       key={item.to}
@@ -349,7 +364,10 @@ function NavStrip({ location }) {
                         fontSize: "0.8rem", flexShrink: 0,
                         color: active ? "#818cf8" : "#6b7280",
                       }}>{item.icon}</span>
-                      {item.label}
+                      <div style={{ flex: 1 }}>{item.label}</div>
+                      {itemPending > 0 && (
+                        <span style={{ background: "#ef4444", color: "white", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 8 }}>{itemPending}</span>
+                      )}
                     </NavLink>
                   );
                 })}
@@ -366,8 +384,13 @@ function NavStrip({ location }) {
 export default function Navbar({ user, onLogout }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [systemRole, setSystemRole] = useState(null);
+  const [pendingInvites, setPendingInvites] = useState(0);
+
   const location = useLocation();
   const navigate = useNavigate();
+  const { authFetch } = useAuth();
+  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
   // Keyboard shortcut: Cmd+K
   useEffect(() => {
@@ -381,6 +404,28 @@ export default function Navbar({ user, onLogout }) {
     window.addEventListener("scroll", h);
     return () => window.removeEventListener("scroll", h);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch global role
+    authFetch(`${API_BASE}/rbac/my-role`)
+      .then(r => r.json())
+      .then(d => setSystemRole(d.role))
+      .catch(() => { });
+
+    // Fetch team pending invites
+    authFetch(`${API_BASE}/teams/mine`)
+      .then(r => r.json())
+      .then(d => {
+        const pending = (d.teams || []).filter(t => {
+          const m = t.members.find(u => u.email === user.email);
+          return m && m.accepted === false;
+        });
+        setPendingInvites(pending.length);
+      })
+      .catch(() => { });
+  }, [user, authFetch, location.pathname]); // Repoll when path changes to sync state (e.g. after accepting invite)
 
   return (
     <>
@@ -453,7 +498,7 @@ export default function Navbar({ user, onLogout }) {
 
         {/* ── Nav groups ─────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <NavStrip location={location} />
+          <NavStrip location={location} systemRole={systemRole} pendingInvites={pendingInvites} />
         </div>
 
         {/* ── Right side ─────────────────────────────────────────────── */}
