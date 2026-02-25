@@ -201,7 +201,7 @@ export default function RoleManagement() {
       setToast({ message: data.message || `Role changed to ${newRole}`, type: "success" });
 
       // Refresh audit logs
-      if (canViewAudit) {
+      if (permissions.includes("view_audit_logs")) {
         const auditData = await authFetch(`${API}/rbac/audit-logs?limit=20`).then(r => r.json());
         setAuditLogs(auditData.logs || []);
       }
@@ -212,7 +212,7 @@ export default function RoleManagement() {
 
   const meta = myRole ? ROLE_META[myRole] : null;
   const canAssign = permissions.includes("change_roles");
-  const canViewTeam = permissions.includes("manage_team") || role === "admin" || role === "developer";
+  const canViewTeam = permissions.includes("manage_team") || myRole === "admin" || myRole === "developer";
   const canViewAudit = permissions.includes("view_audit_logs");
 
   const tabs = [
