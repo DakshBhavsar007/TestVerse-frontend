@@ -4,38 +4,6 @@ import { useAuth } from "../hooks/useAuth";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
-const NAV = [
-  ["Dashboard", "/dashboard"], ["History", "/history"], ["Trends", "/trends"],
-  ["Diff", "/diff"], ["Schedules", "/schedules"], ["Teams", "/teams"],
-  ["Slack", "/slack"], ["API Keys", "/apikeys"], ["Bulk Test", "/bulk"],
-  ["Branding", "/whitelabel"], ["Analytics", "/analytics"],
-  ["Roles", "/roles"], ["Alerts", "/notifications"], ["Templates", "/templates"], ["Monitors", "/monitoring"],
-  ["New Test", "/"],
-];
-
-function Navbar({ user, logout, active }) {
-  const navigate = useNavigate();
-  return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,11,18,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-        <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.3px" }}>TestVerse</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "#6b7280", marginRight: 4 }}>{user?.email}</span>
-        {NAV.map(([label, path]) => (
-          <button key={label} onClick={() => navigate(path)} style={{
-            padding: "5px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontWeight: 500,
-            background: active === label ? "rgba(99,102,241,0.15)" : "transparent",
-            border: active === label ? "1px solid rgba(99,102,241,0.3)" : "1px solid rgba(255,255,255,0.08)",
-            color: active === label ? "#818cf8" : "#9ca3af",
-          }}>{label}</button>
-        ))}
-        <button onClick={() => { logout(); navigate("/login"); }} style={{ padding: "5px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>Logout</button>
-      </div>
-    </nav>
-  );
-}
 
 const STATUS_META = {
   up:       { color: "#10b981", bg: "rgba(16,185,129,0.08)",  border: "rgba(16,185,129,0.25)",  icon: "🟢" },
@@ -126,7 +94,6 @@ export default function Monitoring() {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", top: -200, left: "50%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)", transform: "translateX(-50%)" }} />
       </div>
-      <Navbar user={user} logout={logout} active="Monitors" />
 
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 

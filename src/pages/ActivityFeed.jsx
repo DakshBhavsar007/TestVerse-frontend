@@ -121,26 +121,6 @@ export default function ActivityFeed() {
         <div style={{ position: "absolute", top: -300, right: -200, width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)" }} />
       </div>
 
-      {/* Navbar */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,11,18,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.3px" }}>TestVerse</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {["dashboard", "history", "schedules", "teams"].map(p => (
-            <button key={p} onClick={() => navigate(`/${p}`)}
-              style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af", fontSize: 13, cursor: "pointer", fontWeight: 500, textTransform: "capitalize" }}>
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
-          <span style={{ fontSize: 13, color: "#4b5563" }}>{user?.email}</span>
-          <button onClick={() => { logout(); navigate("/login"); }}
-            style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7280", fontSize: 13, cursor: "pointer" }}>
-            Logout
-          </button>
-        </div>
-      </nav>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
         {/* Header */}

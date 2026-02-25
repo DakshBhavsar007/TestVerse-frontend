@@ -104,33 +104,6 @@ export default function SlackSettings() {
         <div style={{ position: "absolute", bottom: -100, right: -100, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(74,222,128,0.04) 0%, transparent 70%)" }} />
       </div>
 
-      {/* Navbar */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,11,18,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.3px" }}>TestVerse</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, color: "#6b7280" }}>{user?.email}</span>
-          {navBtn("Dashboard", "/dashboard")}
-          {navBtn("History", "/history")}
-          {navBtn("Trends", "/trends")}
-          {navBtn("Diff", "/diff")}
-          {navBtn("Schedules", "/schedules")}
-          {navBtn("Teams", "/teams")}
-          {navBtn("Slack", "/slack", true)}
-          {navBtn("API Keys", "/apikeys")}
-          {navBtn("Bulk Test", "/bulk")}
-          {navBtn("Branding", "/whitelabel")}
-          {navBtn("Analytics", "/analytics")}
-          {navBtn("Roles", "/roles")}
-          {navBtn("Alerts", "/notifications")}
-          {navBtn("Templates", "/templates")}
-          {navBtn("Monitors", "/monitoring")}
-          {navBtn("New Test", "/")}
-          <button onClick={() => { logout(); navigate("/login"); }} style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7280", fontSize: 13, cursor: "pointer" }}>Logout</button>
-        </div>
-      </nav>
 
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 

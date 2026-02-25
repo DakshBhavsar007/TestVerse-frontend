@@ -196,14 +196,6 @@ export default function AI() {
       `}</style>
 
       {/* NAV */}
-      <nav style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "0 24px", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", gap: 24, height: 56, overflowX: "auto" }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.accent, flexShrink: 0 }}>⚡ TestVerse</span>
-          {NAV_ITEMS.map(n => (
-            <Link key={n.path} to={n.path} className={`nav-link${n.path === "/ai" ? " active" : ""}`}>{n.label}</Link>
-          ))}
-        </div>
-      </nav>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
         {/* Header */}

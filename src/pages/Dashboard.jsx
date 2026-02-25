@@ -230,44 +230,6 @@ export default function Dashboard() {
         <div style={{ position: "absolute", bottom: -200, right: -200, width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%)" }} />
       </div>
 
-      {/* Navbar */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,11,18,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.3px" }}>TestVerse</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {[
-            { label: "New Test",   path: "/",             style: { background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", color: "#818cf8" } },
-            { label: "History",    path: "/history",       style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Schedules",  path: "/schedules",     style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Teams",      path: "/teams",         style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Slack",      path: "/slack",         style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "API Keys",   path: "/apikeys",       style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Bulk Test",  path: "/bulk",          style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Branding",   path: "/whitelabel",    style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Analytics",  path: "/analytics",     style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Roles",      path: "/roles",         style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Alerts",     path: "/notifications", style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Templates",  path: "/templates",     style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Monitors",   path: "/monitoring",    style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Reporting",  path: "/reporting",     style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Billing",    path: "/billing",       style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Compliance", path: "/compliance",    style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-            { label: "Dev Tools",  path: "/devtools",      style: { background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" } },
-          ].map(({ label, path, style }) => (
-            <button key={label} onClick={() => navigate(path)}
-              style={{ padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 500, ...style }}>
-              {label}
-            </button>
-          ))}
-          <span style={{ fontSize: 13, color: "#4b5563", marginLeft: 4 }}>{user?.email}</span>
-          <button onClick={() => { logout(); navigate("/login"); }}
-            style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7280", fontSize: 13, cursor: "pointer" }}>
-            Logout
-          </button>
-        </div>
-      </nav>
 
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 

@@ -298,49 +298,6 @@ export default function Schedules() {
         <div style={{ position: "absolute", top: -200, right: -100, width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)" }} />
       </div>
 
-      {/* Navbar */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,11,18,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.3px" }}>TestVerse</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => navigate("/")}
-            style={{ padding: "6px 14px", borderRadius: 8, background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", color: "#818cf8", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
-            New Test
-          </button>
-          {[
-            { label: "Dashboard", path: "/dashboard" },
-            { label: "History",   path: "/history" },
-            { label: "Trends",    path: "/trends" },
-            { label: "Diff",      path: "/diff" },
-            { label: "Teams",     path: "/teams" },
-            { label: "Slack",     path: "/slack" },
-            { label: "API Keys",  path: "/apikeys" },
-            { label: "Bulk Test", path: "/bulk" },
-            { label: "Branding",  path: "/whitelabel" },
-            { label: "Analytics", path: "/analytics" },
-            { label: "Roles",     path: "/roles" },
-            { label: "Alerts",    path: "/notifications" },
-            { label: "Templates", path: "/templates" },
-            { label: "Monitors",  path: "/monitoring" },
-            { label: "Reporting",  path: "/reporting" },
-            { label: "Billing",    path: "/billing" },
-            { label: "Compliance", path: "/compliance" },
-            { label: "Dev Tools",  path: "/devtools" },
-          ].map(({ label, path }) => (
-            <button key={label} onClick={() => navigate(path)}
-              style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
-              {label}
-            </button>
-          ))}
-          <span style={{ fontSize: 13, color: "#4b5563", marginLeft: 4 }}>{user?.email}</span>
-          <button onClick={() => { logout(); navigate("/login"); }}
-            style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7280", fontSize: 13, cursor: "pointer" }}>
-            Logout
-          </button>
-        </div>
-      </nav>
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 
