@@ -9,7 +9,7 @@ const NAV_GROUPS = [
       { to: "/dashboard", icon: "▦", label: "Dashboard" },
       { to: "/history", icon: "◷", label: "History" },
       { to: "/trends", icon: "↗", label: "Trends" },
-      { to: "/diff", icon: "◫", label: "Compare" },
+      { to: "/diff", icon: "◫", label: "Difference" },
       { to: "/activity", icon: "〰", label: "Activity" },
       { to: "/ai", icon: "✨", label: "AI Insights" },
     ],
