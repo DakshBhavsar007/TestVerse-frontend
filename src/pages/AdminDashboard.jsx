@@ -195,6 +195,7 @@ export default function AdminDashboard() {
                                             <th style={{ padding: "12px" }}>Email</th>
                                             <th style={{ padding: "12px" }}>Name</th>
                                             <th style={{ padding: "12px" }}>System Role</th>
+                                            <th style={{ padding: "12px" }}>Last Seen</th>
                                             <th style={{ padding: "12px", textAlign: "right" }}>Actions</th>
                                         </tr>
                                     </thead>
@@ -222,6 +223,9 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <span style={{ color: u.role === "admin" ? "#f59e0b" : "#6366f1", fontWeight: 700, fontSize: 12, textTransform: "uppercase" }}>{u.role}</span>
                                                     )}
+                                                </td>
+                                                <td style={{ padding: "12px", fontSize: 11, color: "#9ca3af" }}>
+                                                    {u.last_login ? new Date(u.last_login).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "Never"}
                                                 </td>
                                                 <td style={{ padding: "12px", textAlign: "right", display: "flex", gap: 8, justifyContent: "flex-end" }}>
                                                     {u.email === user?.email ? (
