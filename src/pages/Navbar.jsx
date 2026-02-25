@@ -9,14 +9,29 @@ const NAV_GROUPS = [
       { to: "/dashboard", icon: "▦", label: "Dashboard" },
       { to: "/history", icon: "◷", label: "History" },
       { to: "/trends", icon: "↗", label: "Trends" },
-      { to: "/monitoring", icon: "◉", label: "Monitors" },
+      { to: "/diff", icon: "◫", label: "Compare" },
+      { to: "/activity", icon: "〰", label: "Activity" },
+      { to: "/ai", icon: "✨", label: "AI Insights" },
     ],
   },
   {
-    label: "Schedule",
+    label: "Testing",
     items: [
       { to: "/schedules", icon: "⊡", label: "Schedules" },
       { to: "/bulk", icon: "⊞", label: "Bulk Test" },
+      { to: "/templates", icon: "▤", label: "Templates" },
+      { to: "/monitoring", icon: "◉", label: "Monitors" },
+      { to: "/openapi-import", icon: "⚡", label: "OpenAPI API" },
+    ],
+  },
+  {
+    label: "Ops & CI",
+    items: [
+      { to: "/notifications", icon: "🔔", label: "Alerts" },
+      { to: "/cicd/settings", icon: "⚙", label: "CI/CD Settings" },
+      { to: "/cicd/triggers", icon: "▶", label: "CI/CD Triggers" },
+      { to: "/reporting", icon: "📊", label: "Reporting" },
+      { to: "/compliance", icon: "✓", label: "Compliance" },
     ],
   },
   {
@@ -34,6 +49,7 @@ const NAV_GROUPS = [
       { to: "/analytics", icon: "◬", label: "Analytics" },
       { to: "/whitelabel", icon: "◇", label: "Branding" },
       { to: "/billing", icon: "◆", label: "Billing" },
+      { to: "/devtools", icon: "🔧", label: "Dev Tools" },
     ],
   },
 ];

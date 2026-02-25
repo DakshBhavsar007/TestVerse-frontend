@@ -200,14 +200,15 @@ export default function Home() {
           {/* Headline */}
           <h1 style={{
             fontFamily: "'Syne', sans-serif",
-            fontSize: "clamp(3rem, 7vw, 5.5rem)",
-            fontWeight: 900, lineHeight: 1.0,
-            letterSpacing: "-2px",
+            fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
+            fontWeight: 900, lineHeight: 1.1,
+            letterSpacing: "-1.5px",
             marginBottom: 24,
+            maxWidth: 800,
+            margin: "0 auto 24px",
             animation: "riseUp 0.6s ease 0.1s both",
           }}>
-            <span style={{ color: "#f1f5f9" }}>Analyze your</span>
-            <br />
+            <span style={{ color: "#f1f5f9" }}>Analyze your </span>
             <span style={{
               background: "linear-gradient(135deg, #818cf8, #c4b5fd 40%, #22d3ee)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -216,8 +217,7 @@ export default function Home() {
             }}>
               website's health
             </span>
-            <br />
-            <span style={{ color: "#f1f5f9" }}>in seconds.</span>
+            <span style={{ color: "#f1f5f9" }}> in seconds.</span>
           </h1>
 
           {/* Sub */}
@@ -231,138 +231,148 @@ export default function Home() {
           </p>
 
           {/* ── INPUT CARD ──────────────────────────────────────────── */}
-          <div style={{
-            background: "rgba(14,14,28,0.85)", backdropFilter: "blur(24px)",
-            border: `1px solid ${focused ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.07)"}`,
-            borderRadius: 24, padding: 28, maxWidth: 740, margin: "0 auto",
-            boxShadow: focused ? "0 0 60px rgba(99,102,241,0.1)" : "0 20px 60px rgba(0,0,0,0.4)",
-            transition: "all 0.3s", animation: "riseUp 0.6s ease 0.3s both",
-          }}>
-            {/* Tab switcher */}
+          <div style={{ position: "relative", maxWidth: 740, margin: "0 auto", zIndex: 10 }}>
+            {/* Glowing orb behind card */}
             <div style={{
-              display: "flex", gap: 4,
-              background: "rgba(255,255,255,0.04)",
-              padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 24,
-            }}>
-              {["basic", "login"].map(t => (
-                <button
-                  key={t}
-                  className="tab-pill"
-                  onClick={() => setTab(t)}
-                  style={{
-                    padding: "9px 22px", borderRadius: 9, border: "none",
-                    fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "0.875rem",
-                    cursor: "pointer", transition: "all 0.2s",
-                    background: tab === t ? "linear-gradient(135deg, #6366f1, #818cf8)" : "transparent",
-                    color: tab === t ? "#fff" : "#6b7280",
-                    boxShadow: tab === t ? "0 4px 16px rgba(99,102,241,0.35)" : "none",
-                  }}
-                >
-                  {t === "basic" ? "Basic Audit" : "Login Automation"}
-                </button>
-              ))}
-            </div>
+              position: "absolute", inset: -20, zIndex: -1,
+              background: "linear-gradient(135deg, rgba(99,102,241,0.5), rgba(167,139,250,0.5), rgba(34,211,238,0.5))",
+              filter: "blur(40px)", opacity: focused ? 0.6 : 0.2,
+              transition: "opacity 0.6s ease", borderRadius: 40,
+            }} />
 
-            {tab === "basic" ? (
-              /* Basic URL input */
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <div style={{
-                    position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
-                    fontSize: "1rem", opacity: 0.4, pointerEvents: "none",
-                  }}>🔍</div>
-                  <input
-                    type="url"
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    onKeyDown={e => e.key === "Enter" && handleRun()}
+            <div style={{
+              background: "linear-gradient(145deg, rgba(20,20,38,0.95), rgba(14,14,28,0.85))", backdropFilter: "blur(24px)",
+              border: `1px solid ${focused ? "rgba(99,102,241,0.6)" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 24, padding: 28,
+              boxShadow: focused ? "0 0 80px rgba(99,102,241,0.2)" : "0 20px 60px rgba(0,0,0,0.4)",
+              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)", animation: "riseUp 0.6s ease 0.3s both",
+            }}>
+              {/* Tab switcher */}
+              <div style={{
+                display: "flex", gap: 4,
+                background: "rgba(255,255,255,0.04)",
+                padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 24,
+              }}>
+                {["basic", "login"].map(t => (
+                  <button
+                    key={t}
+                    className="tab-pill"
+                    onClick={() => setTab(t)}
                     style={{
-                      width: "100%", padding: "16px 20px 16px 44px",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: 14, fontSize: "1rem",
-                      color: "#e2e8f0", fontFamily: "'DM Sans', sans-serif",
-                      outline: "none", transition: "border-color 0.2s",
+                      padding: "9px 22px", borderRadius: 9, border: "none",
+                      fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "0.875rem",
+                      cursor: "pointer", transition: "all 0.2s",
+                      background: tab === t ? "linear-gradient(135deg, #6366f1, #818cf8)" : "transparent",
+                      color: tab === t ? "#fff" : "#6b7280",
+                      boxShadow: tab === t ? "0 4px 16px rgba(99,102,241,0.35)" : "none",
                     }}
-                    onMouseOver={e => e.target.style.borderColor = "rgba(99,102,241,0.3)"}
-                    onMouseOut={e => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
-                  />
-                </div>
-                <button
-                  className="run-btn"
-                  onClick={handleRun}
-                  disabled={!url || loading}
-                  style={{
-                    padding: "16px 28px", borderRadius: 14, border: "none",
-                    background: "linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #6366f1 100%)",
-                    backgroundSize: "200% auto",
-                    color: "#fff", fontWeight: 700, fontSize: "0.95rem",
-                    fontFamily: "'DM Sans', sans-serif",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    opacity: !url || loading ? 0.7 : 1,
-                    display: "flex", alignItems: "center", gap: 8,
-                    whiteSpace: "nowrap", transition: "all 0.2s",
-                    boxShadow: "0 4px 24px rgba(99,102,241,0.4)",
-                    animation: "shimmer 3s linear infinite",
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <span style={{
-                        width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)",
-                        borderTop: "2px solid #fff", borderRadius: "50%",
-                        animation: "spin 0.8s linear infinite", display: "inline-block"
-                      }} />
-                      Running...
-                    </>
-                  ) : (
-                    <> Run Test ⚡</>
-                  )}
-                </button>
+                  >
+                    {t === "basic" ? "Basic Audit" : "Login Automation"}
+                  </button>
+                ))}
               </div>
-            ) : (
-              /* Login automation form */
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { key: "url", label: "Website URL", placeholder: "https://example.com/login", type: "url" },
-                  { key: "username", label: "Username / Email", placeholder: "user@example.com", type: "text" },
-                  { key: "password", label: "Password", placeholder: "••••••••", type: "password" },
-                ].map(({ key, label, placeholder, type }) => (
-                  <div key={key}>
-                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#6b7280", letterSpacing: "0.05em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{label}</label>
+
+              {tab === "basic" ? (
+                /* Basic URL input */
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <div style={{
+                      position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+                      fontSize: "1rem", opacity: 0.4, pointerEvents: "none",
+                    }}>🔍</div>
                     <input
-                      type={type}
-                      placeholder={placeholder}
-                      value={loginData[key]}
-                      onChange={e => setLoginData(d => ({ ...d, [key]: e.target.value }))}
+                      type="url"
+                      placeholder="https://example.com"
+                      value={url}
+                      onChange={e => setUrl(e.target.value)}
+                      onFocus={() => setFocused(true)}
+                      onBlur={() => setFocused(false)}
+                      onKeyDown={e => e.key === "Enter" && handleRun()}
                       style={{
-                        width: "100%", padding: "13px 16px",
+                        width: "100%", padding: "16px 20px 16px 44px",
                         background: "rgba(255,255,255,0.04)",
                         border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: 12, fontSize: "0.95rem",
+                        borderRadius: 14, fontSize: "1rem",
                         color: "#e2e8f0", fontFamily: "'DM Sans', sans-serif",
-                        outline: "none",
+                        outline: "none", transition: "border-color 0.2s",
                       }}
+                      onMouseOver={e => e.target.style.borderColor = "rgba(99,102,241,0.3)"}
+                      onMouseOut={e => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
                     />
                   </div>
-                ))}
-                <button
-                  className="run-btn"
-                  style={{
-                    padding: "15px", borderRadius: 14, border: "none",
-                    background: "linear-gradient(135deg, #6366f1, #818cf8)",
-                    color: "#fff", fontWeight: 700, fontSize: "0.95rem",
-                    fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
-                    boxShadow: "0 4px 24px rgba(99,102,241,0.35)", transition: "all 0.2s",
-                  }}
-                >
-                  Run Login Test ⚡
-                </button>
-              </div>
-            )}
+                  <button
+                    className="run-btn"
+                    onClick={handleRun}
+                    disabled={!url || loading}
+                    style={{
+                      padding: "16px 28px", borderRadius: 14, border: "none",
+                      background: "linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #6366f1 100%)",
+                      backgroundSize: "200% auto",
+                      color: "#fff", fontWeight: 700, fontSize: "0.95rem",
+                      fontFamily: "'DM Sans', sans-serif",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: !url || loading ? 0.7 : 1,
+                      display: "flex", alignItems: "center", gap: 8,
+                      whiteSpace: "nowrap", transition: "all 0.2s",
+                      boxShadow: "0 4px 24px rgba(99,102,241,0.4)",
+                      animation: "shimmer 3s linear infinite",
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <span style={{
+                          width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)",
+                          borderTop: "2px solid #fff", borderRadius: "50%",
+                          animation: "spin 0.8s linear infinite", display: "inline-block"
+                        }} />
+                        Running...
+                      </>
+                    ) : (
+                      <> Run Test ⚡</>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* Login automation form */
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {[
+                    { key: "url", label: "Website URL", placeholder: "https://example.com/login", type: "url" },
+                    { key: "username", label: "Username / Email", placeholder: "user@example.com", type: "text" },
+                    { key: "password", label: "Password", placeholder: "••••••••", type: "password" },
+                  ].map(({ key, label, placeholder, type }) => (
+                    <div key={key}>
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#6b7280", letterSpacing: "0.05em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{label}</label>
+                      <input
+                        type={type}
+                        placeholder={placeholder}
+                        value={loginData[key]}
+                        onChange={e => setLoginData(d => ({ ...d, [key]: e.target.value }))}
+                        style={{
+                          width: "100%", padding: "13px 16px",
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: 12, fontSize: "0.95rem",
+                          color: "#e2e8f0", fontFamily: "'DM Sans', sans-serif",
+                          outline: "none",
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <button
+                    className="run-btn"
+                    style={{
+                      padding: "15px", borderRadius: 14, border: "none",
+                      background: "linear-gradient(135deg, #6366f1, #818cf8)",
+                      color: "#fff", fontWeight: 700, fontSize: "0.95rem",
+                      fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
+                      boxShadow: "0 4px 24px rgba(99,102,241,0.35)", transition: "all 0.2s",
+                    }}
+                  >
+                    Run Login Test ⚡
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── FEATURE CHIPS ────────────────────────────────────────── */}
