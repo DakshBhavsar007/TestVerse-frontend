@@ -173,13 +173,18 @@ export default function Home() {
       const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
       const res = await authFetch(`${API}/run`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Server error ${res.status}: ${errText}`);
+      }
       const data = await res.json();
       if (data.test_id) {
         navigate(`/result/${data.test_id}`);
       } else {
-        alert("Failed to start test");
+        alert("Failed to start test — no test_id returned");
       }
     } catch (e) {
       alert("Error: " + e.message);
