@@ -343,7 +343,7 @@ export default function Dashboard() {
                     {stats.top_urls.map((item) => (
                       <URLRow key={item.url} url={item.url} count={item.count}
                         score={item.latest_score}
-                        onClick={() => navigate("/history")} />
+                        onClick={() => navigate(`/history?url=${encodeURIComponent(item.url)}`)} />
                     ))}
                   </div>
                 )}

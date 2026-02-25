@@ -65,36 +65,74 @@ function StatCounter({ end, suffix, label }) {
 
   useEffect(() => {
     let timer;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        let start = 0;
-        const step = end / 60;
-        timer = setInterval(() => {
-          start += step;
-          if (start >= end) {
-            setCount(end);
-            clearInterval(timer);
-            if (end > 1000) {
-              timer = setInterval(() => setCount(c => c + Math.floor(Math.random() * 3) + 1), 3500);
-            }
+    let observer;
+
+    // Smoothly animate towards new end value
+    const animateTo = (targetEnd, startFrom) => {
+      let current = startFrom;
+      const diff = targetEnd - current;
+      const step = diff / 30; // 30 frames
+      let frame = 0;
+
+      clearInterval(timer);
+
+      if (diff === 0) {
+        setCount(targetEnd);
+        return;
+      }
+
+      timer = setInterval(() => {
+        frame++;
+        current += step;
+        if (frame >= 30) {
+          setCount(targetEnd);
+          clearInterval(timer);
+          // If we want fake live ticks...
+          if (targetEnd > 1000) {
+            timer = setInterval(() => setCount(c => c + Math.floor(Math.random() * 3) + 1), 3500);
           }
-          else setCount(Math.floor(start));
-        }, 16);
+        } else {
+          setCount(Math.floor(current));
+        }
+      }, 16);
+    };
+
+    observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
         observer.disconnect();
+        animateTo(end, count === 0 ? 0 : count);
       }
     });
-    if (ref.current) observer.observe(ref.current);
-    return () => { observer.disconnect(); clearInterval(timer); };
-  }, [end]);
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    // If we're already non-zero, we might just want to animate there directly if end changes
+    if (count > 0) {
+      animateTo(end, count);
+    }
+
+    return () => {
+      if (observer) observer.disconnect();
+      clearInterval(timer);
+    };
+  }, [end]); // Re-run if end changes
+
+  // Dynamic font size logic to prevent cutoffs
+  const chars = count.toLocaleString().length + (suffix || "").length;
+  const fontSize = chars > 8 ? "1.8rem" : "2.5rem";
 
   return (
     <div ref={ref} style={{ textAlign: "center" }}>
       <div style={{
-        fontSize: "2.5rem", fontWeight: 900, lineHeight: 1.3, paddingBottom: 2,
+        fontSize: fontSize, fontWeight: 900, lineHeight: 1.3, paddingBottom: 2,
         background: "linear-gradient(135deg, #fff 40%, #a78bfa)",
         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
         fontFamily: "'Syne', sans-serif",
         letterSpacing: "-1.5px",
+        whiteSpace: "nowrap",
+        overflow: "visible",
       }}>
         {count.toLocaleString()}{suffix}
       </div>
@@ -530,31 +568,31 @@ export default function Home() {
             </div>
           )}
           <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
             gap: 1, background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20,
           }}>
             {[
               {
-                end: realStats?.total_tests ?? 2400000,
+                end: realStats ? realStats.total_tests : 2400000,
                 suffix: "+",
                 label: "Tests Run",
                 live: !!realStats,
               },
               {
-                end: realStats?.uptime_accuracy ?? 98,
+                end: realStats ? realStats.uptime_accuracy : 98,
                 suffix: "%",
                 label: "Uptime Accuracy",
                 live: !!realStats,
               },
               {
-                end: realStats?.avg_response_ms ?? 50,
+                end: realStats ? realStats.avg_response_ms : 50,
                 suffix: "ms",
                 label: "Avg Response",
                 live: !!realStats,
               },
               {
-                end: realStats?.sites_monitored ?? 12000,
+                end: realStats ? realStats.sites_monitored : 12000,
                 suffix: "+",
                 label: "Sites Monitored",
                 live: !!realStats,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
@@ -75,6 +75,8 @@ function RadarBars({ result }) {
 export default function History() {
   const { authFetch, user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetUrl = searchParams.get("url");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,11 +89,13 @@ export default function History() {
       .catch(e => setError(e.message)).finally(() => setLoading(false));
   }, [authFetch]);
 
-  const filtered = results.filter(r =>
+  const urlFilteredResults = targetUrl ? results.filter(r => r.url === targetUrl) : results;
+
+  const filtered = urlFilteredResults.filter(r =>
     filter === "all" ? true : r.status === filter
   );
 
-  const scoredResults = results.filter(r => r.overall_score != null && !isNaN(r.overall_score));
+  const scoredResults = urlFilteredResults.filter(r => r.overall_score != null && !isNaN(r.overall_score));
   const avgScore = scoredResults.length
     ? Math.round(scoredResults.reduce((a, r) => a + r.overall_score, 0) / scoredResults.length)
     : null;
@@ -108,17 +112,26 @@ export default function History() {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.8px", margin: 0, background: "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Test History</h1>
-          <p style={{ color: "#4b5563", fontSize: 14, margin: "6px 0 0" }}>All your website health checks in one place</p>
+          <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.8px", margin: 0, background: "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            {targetUrl ? `History: ${targetUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}` : "Test History"}
+          </h1>
+          <p style={{ color: "#4b5563", fontSize: 14, margin: "6px 0 0" }}>
+            {targetUrl ? "Filtered test runs for this website" : "All your website health checks in one place"}
+          </p>
+          {targetUrl && (
+            <button onClick={() => navigate("/history")} style={{ marginTop: 12, padding: "6px 14px", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", fontSize: 13, cursor: "pointer" }}>
+              ← Clear filter
+            </button>
+          )}
         </div>
 
         {/* Stats row */}
-        {!loading && results.length > 0 && (
+        {!loading && urlFilteredResults.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
             {[
-              { label: "Total Tests", value: results.length, icon: "🧪", color: "#6366f1" },
+              { label: "Total Tests", value: urlFilteredResults.length, icon: "🧪", color: "#6366f1" },
               { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "—", icon: "📊", color: scoreColor(avgScore).text },
-              { label: "Completed", value: results.filter(r => r.status === "completed").length, icon: "✅", color: "#10b981" },
+              { label: "Completed", value: urlFilteredResults.filter(r => r.status === "completed").length, icon: "✅", color: "#10b981" },
             ].map(({ label, value, icon, color }) => (
               <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "18px 20px" }}>
                 <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
@@ -130,17 +143,19 @@ export default function History() {
         )}
 
         {/* Filter tabs */}
-        {!loading && results.length > 0 && (
+        {!loading && urlFilteredResults.length > 0 && (
           <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
             {["all", "completed", "running", "failed"].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                style={{ padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 0.2s",
+                style={{
+                  padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 0.2s",
                   background: filter === f ? "rgba(99,102,241,0.2)" : "transparent",
                   border: filter === f ? "1px solid rgba(99,102,241,0.4)" : "1px solid rgba(255,255,255,0.07)",
-                  color: filter === f ? "#818cf8" : "#6b7280" }}>
+                  color: filter === f ? "#818cf8" : "#6b7280"
+                }}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
                 <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>
-                  {f === "all" ? results.length : results.filter(r => r.status === f).length}
+                  {f === "all" ? urlFilteredResults.length : urlFilteredResults.filter(r => r.status === f).length}
                 </span>
               </button>
             ))}
@@ -159,11 +174,13 @@ export default function History() {
         {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "14px 18px", color: "#f87171", fontSize: 14 }}>{error}</div>}
 
         {/* Empty state */}
-        {!loading && results.length === 0 && (
+        {!loading && urlFilteredResults.length === 0 && (
           <div style={{ textAlign: "center", padding: "100px 0" }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>📭</div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: "#374151", margin: "0 0 8px" }}>No tests yet</h3>
-            <p style={{ color: "#4b5563", fontSize: 14, margin: "0 0 24px" }}>Run your first website health check to get started</p>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: "#374151", margin: "0 0 8px" }}>No tests found</h3>
+            <p style={{ color: "#4b5563", fontSize: 14, margin: "0 0 24px" }}>
+              {targetUrl ? "No successful tests found for this URL." : "Run your first website health check to get started"}
+            </p>
             <button onClick={() => navigate("/")} style={{ padding: "10px 24px", borderRadius: 10, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", border: "none", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               Run First Test →
             </button>

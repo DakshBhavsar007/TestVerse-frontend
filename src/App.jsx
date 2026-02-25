@@ -36,6 +36,7 @@ import CICDTriggers from "./pages/CICDTriggers";
 // Phase 8E
 import OpenAPIImport from "./pages/OpenAPIImport";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
 import Navbar from "./pages/Navbar";
 
 function PrivateRoute({ children }) {
@@ -107,6 +108,7 @@ export default function App() {
 
           {/* Profile */}
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -50,6 +50,7 @@ const NAV_GROUPS = [
       { to: "/whitelabel", icon: "◇", label: "Branding" },
       { to: "/billing", icon: "◆", label: "Billing" },
       { to: "/devtools", icon: "🔧", label: "Dev Tools" },
+      { to: "/admin", icon: "👑", label: "System Admin" },
     ],
   },
 ];
