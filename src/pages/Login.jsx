@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import "./Login.css";
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -12,7 +13,8 @@ export default function Login() {
 
   const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const submit = async () => {
+  const submit = async (e) => {
+    if (e) e.preventDefault();
     setError(""); setLoading(true);
     try {
       if (mode === "login") await login(form.email, form.password);
@@ -26,29 +28,126 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl">
-        <div className="card-body gap-4">
-          <div className="text-center mb-2">
-            <h1 className="text-3xl font-bold">🧪 TestVerse</h1>
-            <p className="text-base-content/60 text-sm mt-1">Automated Website Testing</p>
+    <div className="login-page">
+      <div className="login-card">
+        <header className="login-header">
+          <div className="logo-container">
+            <svg
+              className="logo-icon"
+              viewBox="0 0 24 24"
+              width="32"
+              height="32"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+            <h1 className="brand-name">TestVerse</h1>
           </div>
-          <div className="tabs tabs-boxed">
-            <button className={`tab flex-1 ${mode === "login" ? "tab-active" : ""}`} onClick={() => setMode("login")}>Login</button>
-            <button className={`tab flex-1 ${mode === "register" ? "tab-active" : ""}`} onClick={() => setMode("register")}>Register</button>
-          </div>
-          {mode === "register" && (
-            <input name="name" type="text" placeholder="Full name" className="input input-bordered w-full" value={form.name} onChange={handle} />
-          )}
-          <input name="email" type="email" placeholder="Email address" className="input input-bordered w-full" value={form.email} onChange={handle} />
-          <input name="password" type="password" placeholder="Password (min 8 chars)" className="input input-bordered w-full"
-            value={form.password} onChange={handle} onKeyDown={(e) => e.key === "Enter" && submit()} />
-          {error && <div className="alert alert-error text-sm py-2">{error}</div>}
-          <button className="btn btn-primary w-full" onClick={submit} disabled={loading}>
-            {loading ? <span className="loading loading-spinner" /> : mode === "login" ? "Sign In" : "Create Account"}
+          <p className="tagline">Automated Website Testing</p>
+        </header>
+
+        <nav className="login-tabs">
+          <button
+            className={`tab-button ${mode === "login" ? "active" : ""}`}
+            onClick={() => setMode("login")}
+            type="button"
+          >
+            Login
           </button>
-        </div>
+          <button
+            className={`tab-button ${mode === "register" ? "active" : ""}`}
+            onClick={() => setMode("register")}
+            type="button"
+          >
+            Register
+          </button>
+        </nav>
+
+        <form className="login-form" onSubmit={submit}>
+          {mode === "register" && (
+            <div className="form-field">
+              <label htmlFor="name" className="sr-only">Full Name</label>
+              <div className="input-container">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Full name"
+                  className="auth-input"
+                  value={form.name}
+                  onChange={handle}
+                  required={mode === "register"}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="form-field">
+            <label htmlFor="email" className="sr-only">Email Address</label>
+            <div className="input-container">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Email address"
+                className="auth-input"
+                value={form.email}
+                onChange={handle}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-field password-field">
+            <label htmlFor="password" className="sr-only">Password</label>
+            <div className="input-container">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Password (min 8 chars)"
+                className="auth-input"
+                value={form.password}
+                onChange={handle}
+                required
+                minLength={8}
+              />
+            </div>
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button className="submit-button" type="submit" disabled={loading}>
+            {loading ? (
+              <div className="spinner-sm" style={{
+                width: "18px",
+                height: "18px",
+                border: "2px solid rgba(255,255,255,0.3)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "spin 0.6s linear infinite"
+              }} />
+            ) : mode === "login" ? "Sign In" : "Create Account"}
+          </button>
+        </form>
       </div>
+      <style>{`
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border-width: 0;
+        }
+      `}</style>
     </div>
   );
 }
