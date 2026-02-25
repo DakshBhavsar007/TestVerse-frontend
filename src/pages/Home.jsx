@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 // ─── Animated background grid ───────────────────────────────────────────────
 function GridBackground() {
@@ -150,11 +152,40 @@ export default function Home() {
   const [loginData, setLoginData] = useState({ url: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+  const { authFetch } = useAuth();
+  const navigate = useNavigate();
 
-  const handleRun = () => {
-    if (!url && tab === "basic") return;
+  const handleRun = async () => {
+    const targetUrl = tab === "basic" ? url : loginData.url;
+    if (!targetUrl) return;
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000); // Replace with real API call
+    try {
+      const payload = { url: targetUrl };
+      if (tab === "login") {
+        if (!loginData.username || !loginData.password) {
+          alert("Username and password are required for login automation");
+          setLoading(false);
+          return;
+        }
+        payload.username = loginData.username;
+        payload.password = loginData.password;
+      }
+      const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+      const res = await authFetch(`${API}/run`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.test_id) {
+        navigate(`/result/${data.test_id}`);
+      } else {
+        alert("Failed to start test");
+      }
+    } catch (e) {
+      alert("Error: " + e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const features = [
@@ -367,16 +398,32 @@ export default function Home() {
                   ))}
                   <button
                     className="run-btn"
+                    onClick={handleRun}
+                    disabled={!loginData.url || loading}
                     style={{
                       boxSizing: "border-box", width: "100%",
                       padding: "15px", borderRadius: 14, border: "none",
                       background: "linear-gradient(135deg, #6366f1, #818cf8)",
                       color: "#fff", fontWeight: 700, fontSize: "0.95rem",
-                      fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: !loginData.url || loading ? 0.7 : 1,
                       boxShadow: "0 4px 24px rgba(99,102,241,0.35)", transition: "all 0.2s",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     }}
                   >
-                    Run Login Test ⚡
+                    {loading ? (
+                      <>
+                        <span style={{
+                          width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)",
+                          borderTop: "2px solid #fff", borderRadius: "50%",
+                          animation: "spin 0.8s linear infinite", display: "inline-block"
+                        }} />
+                        Running...
+                      </>
+                    ) : (
+                      <>Run Login Test ⚡</>
+                    )}
                   </button>
                 </div>
               )}
