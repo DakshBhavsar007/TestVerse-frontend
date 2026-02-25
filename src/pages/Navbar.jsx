@@ -451,7 +451,7 @@ export default function Navbar({ user, onLogout }) {
         <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.07)", flexShrink: 0 }} />
 
         {/* ── Nav groups ─────────────────────────────────────────────── */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
           <NavStrip location={location} />
         </div>
 

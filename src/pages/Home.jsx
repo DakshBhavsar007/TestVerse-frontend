@@ -58,34 +58,41 @@ function StatCounter({ end, suffix, label }) {
   const ref = useRef(null);
 
   useEffect(() => {
+    let timer;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         let start = 0;
         const step = end / 60;
-        const timer = setInterval(() => {
+        timer = setInterval(() => {
           start += step;
-          if (start >= end) { setCount(end); clearInterval(timer); }
+          if (start >= end) {
+            setCount(end);
+            clearInterval(timer);
+            if (end > 1000) {
+              timer = setInterval(() => setCount(c => c + Math.floor(Math.random() * 3) + 1), 3500);
+            }
+          }
           else setCount(Math.floor(start));
         }, 16);
         observer.disconnect();
       }
     });
     if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); clearInterval(timer); };
   }, [end]);
 
   return (
     <div ref={ref} style={{ textAlign: "center" }}>
       <div style={{
-        fontSize: "2.4rem", fontWeight: 900, lineHeight: 1,
+        fontSize: "2.5rem", fontWeight: 900, lineHeight: 1.3, paddingBottom: 2,
         background: "linear-gradient(135deg, #fff 40%, #a78bfa)",
         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
         fontFamily: "'Syne', sans-serif",
-        letterSpacing: "-1px",
+        letterSpacing: "-1.5px",
       }}>
         {count.toLocaleString()}{suffix}
       </div>
-      <div style={{ fontSize: "0.78rem", color: "#6b7280", marginTop: 6, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+      <div style={{ fontSize: "0.78rem", color: "#6b7280", marginTop: 4, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
         {label}
       </div>
     </div>
@@ -289,7 +296,7 @@ export default function Home() {
                       onBlur={() => setFocused(false)}
                       onKeyDown={e => e.key === "Enter" && handleRun()}
                       style={{
-                        width: "100%", padding: "16px 20px 16px 44px",
+                        boxSizing: "border-box", width: "100%", padding: "16px 20px 16px 44px",
                         background: "rgba(255,255,255,0.04)",
                         border: "1px solid rgba(255,255,255,0.08)",
                         borderRadius: 14, fontSize: "1rem",
@@ -348,7 +355,7 @@ export default function Home() {
                         value={loginData[key]}
                         onChange={e => setLoginData(d => ({ ...d, [key]: e.target.value }))}
                         style={{
-                          width: "100%", padding: "13px 16px",
+                          boxSizing: "border-box", width: "100%", padding: "13px 16px",
                           background: "rgba(255,255,255,0.04)",
                           border: "1px solid rgba(255,255,255,0.08)",
                           borderRadius: 12, fontSize: "0.95rem",
@@ -361,6 +368,7 @@ export default function Home() {
                   <button
                     className="run-btn"
                     style={{
+                      boxSizing: "border-box", width: "100%",
                       padding: "15px", borderRadius: 14, border: "none",
                       background: "linear-gradient(135deg, #6366f1, #818cf8)",
                       color: "#fff", fontWeight: 700, fontSize: "0.95rem",
