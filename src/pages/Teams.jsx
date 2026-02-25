@@ -337,7 +337,7 @@ export default function Teams() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                   {/* Invite Member */}
-                  {(isOwner || isAdmin) && (
+                  {isOwner && (
                     <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "20px" }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 12 }}>Invite Member</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -360,11 +360,14 @@ export default function Teams() {
 
                   {/* Members List */}
                   <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "20px" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 16 }}>Members ({members.length})</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 16 }}>Members ({members.filter(m => isOwner || m.accepted !== false || m.email === user?.email).length})</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {members.map(m => {
                         const isSelf = m.email === user?.email;
-                        const canEdit = (isOwner || isAdmin) && !isSelf && m.role !== "owner";
+                        // Hide pending requests from non-owners (except their own pending invite)
+                        if (!isOwner && m.accepted === false && !isSelf) return null;
+
+                        const canEdit = isOwner && !isSelf && m.role !== "owner";
                         return (
                           <div key={m.email} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: isSelf ? "rgba(99,102,241,0.05)" : "rgba(255,255,255,0.02)", borderRadius: 12 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
