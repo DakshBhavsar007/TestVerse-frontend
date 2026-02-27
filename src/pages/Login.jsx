@@ -221,7 +221,7 @@ function GoogleRoleModal({ onConfirm, onCancel, loading }) {
 }
 
 // ─── OTP Screen ───────────────────────────────────────────────────────────────
-function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
+function OTPScreen({ email, onSuccess, onBack, verifyOtp, resendOtp }) {
   const [otp,     setOtp]     = useState("");
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -270,6 +270,21 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
         </header>
 
         <div style={{ padding: "0 4px" }}>
+          {/* ← Back button */}
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "none", border: "none", color: "#6b7280",
+              fontSize: 13, cursor: "pointer", padding: "0 0 16px 0",
+              fontWeight: 500, transition: "color 0.2s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
+            onMouseLeave={(e) => e.currentTarget.style.color = "#6b7280"}
+          >
+            ← Back to Register
+          </button>
           <div style={{ textAlign: "center", marginBottom: 12 }}>
             <span style={{ fontSize: 44 }}>📧</span>
           </div>
@@ -370,8 +385,11 @@ export default function Login() {
         setScreen("otp");
       }
     } catch (err) {
-      if (err.message === "email_not_verified") {
-        setOtpEmail(form.email); setScreen("otp");
+      // "email_not_verified" — user tried to login before verifying
+      // "email_pending_verification" — user went back from OTP screen and re-registered
+      if (err.message === "email_not_verified" || err.message === "email_pending_verification") {
+        setOtpEmail(form.email);
+        setScreen("otp");
       } else {
         setError(err.message);
       }
@@ -398,6 +416,7 @@ export default function Login() {
       <OTPScreen
         email={otpEmail}
         onSuccess={() => navigate("/")}
+        onBack={() => { setScreen("form"); setMode("register"); setError(""); }}
         verifyOtp={verifyOtp}
         resendOtp={resendOtp}
       />
