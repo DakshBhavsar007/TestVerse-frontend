@@ -10,7 +10,6 @@ const ROLES = [
   { id: "viewer",    icon: "👁️",  label: "Viewer",    desc: "Read-only — results & reports",       color: "#6b7280" },
 ];
 
-// ─── Shared style helpers ────────────────────────────────────────────────────
 const inputStyle = {
   width: "100%", padding: "12px 14px", borderRadius: 8,
   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
@@ -19,9 +18,7 @@ const inputStyle = {
 
 const btnPrimary = (disabled) => ({
   width: "100%", padding: "12px", borderRadius: 10, border: "none",
-  background: disabled
-    ? "rgba(99,102,241,0.4)"
-    : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  background: disabled ? "rgba(99,102,241,0.4)" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
   color: "#fff", fontWeight: 600, fontSize: 15,
   cursor: disabled ? "not-allowed" : "pointer", transition: "opacity 0.2s",
 });
@@ -37,25 +34,25 @@ const Spinner = () => (
 
 // ─── OTP Input — 6 boxes ─────────────────────────────────────────────────────
 function OTPInput({ value, onChange }) {
-  const refs = Array.from({ length: 6 }, () => useRef(null));
+  const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)];
   const digits = value.padEnd(6, "").split("");
 
   const handleKey = (i, e) => {
     if (e.key === "Backspace") {
       const next = value.slice(0, i) + value.slice(i + 1);
       onChange(next);
-      if (i > 0) refs[i - 1].current?.focus();
+      if (i > 0) inputRefs[i - 1].current?.focus();
       return;
     }
     if (!/^\d$/.test(e.key)) return;
     const next = value.slice(0, i) + e.key + value.slice(i + 1);
     onChange(next.slice(0, 6));
-    if (i < 5) refs[i + 1].current?.focus();
+    if (i < 5) inputRefs[i + 1].current?.focus();
   };
 
   const handlePaste = (e) => {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted) { onChange(pasted); refs[Math.min(pasted.length, 5)].current?.focus(); }
+    if (pasted) { onChange(pasted); inputRefs[Math.min(pasted.length, 5)].current?.focus(); }
     e.preventDefault();
   };
 
@@ -64,7 +61,7 @@ function OTPInput({ value, onChange }) {
       {digits.map((d, i) => (
         <input
           key={i}
-          ref={refs[i]}
+          ref={inputRefs[i]}
           value={d.trim()}
           onChange={() => {}}
           onKeyDown={(e) => handleKey(i, e)}
@@ -83,7 +80,7 @@ function OTPInput({ value, onChange }) {
   );
 }
 
-// ─── Role Picker (shared by register + Google) ────────────────────────────────
+// ─── Role Picker ──────────────────────────────────────────────────────────────
 function RolePicker({ selected, onSelect }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -112,10 +109,58 @@ function RolePicker({ selected, onSelect }) {
   );
 }
 
+// ─── Overlay + Modal helpers ──────────────────────────────────────────────────
+function Overlay({ children, onClose }) {
+  return (
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
+      }}
+    >
+      <div style={{
+        background: "#0f1623", border: "1px solid rgba(99,102,241,0.3)",
+        borderRadius: 16, padding: 32, width: 400, maxWidth: "90vw",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ title, onClose }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <h2 style={{ color: "#fff", fontSize: 20, margin: 0 }}>{title}</h2>
+      <button onClick={onClose}
+        style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
+function StatusCard({ icon, color, title, body, onClose, closeLabel }) {
+  return (
+    <div style={{ textAlign: "center", padding: "8px 0" }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
+      <p style={{ color, fontWeight: 600, marginBottom: 8, fontSize: 16 }}>{title}</p>
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>{body}</p>
+      <button onClick={onClose}
+        style={{ padding: "10px 28px", borderRadius: 8, border: "none",
+          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+          cursor: "pointer", fontWeight: 600 }}>
+        {closeLabel}
+      </button>
+    </div>
+  );
+}
+
 // ─── Forgot Password Modal ────────────────────────────────────────────────────
 function ForgotModal({ onClose, forgotPassword }) {
   const [email,   setEmail]  = useState("");
-  const [status,  setStatus] = useState(""); // "sent" | "google" | "error"
+  const [status,  setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
@@ -133,7 +178,6 @@ function ForgotModal({ onClose, forgotPassword }) {
   return (
     <Overlay onClose={onClose}>
       <ModalHeader title="🔐 Forgot Password" onClose={onClose} />
-
       {!status && (
         <>
           <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>
@@ -149,7 +193,6 @@ function ForgotModal({ onClose, forgotPassword }) {
           </button>
         </>
       )}
-
       {status === "sent" && (
         <StatusCard icon="📬" color="#10b981" title="Reset link sent!"
           body="Check your inbox. The link expires in 1 hour." onClose={onClose} closeLabel="Close" />
@@ -171,10 +214,14 @@ function GoogleRoleModal({ onConfirm, onCancel, loading }) {
   const [role, setRole] = useState("developer");
   return (
     <Overlay onClose={onCancel}>
-      <ModalHeader title="Select Your Role" onClose={onCancel} />
-      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>Choose how you'll use TestVerse</p>
+      <ModalHeader title="🎭 Select Your Role" onClose={onCancel} />
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>
+        Choose how you'll use TestVerse
+      </p>
       <RolePicker selected={role} onSelect={setRole} />
-      <p style={{ color: "#6b7280", fontSize: 12, margin: "12px 0 20px" }}>ℹ️ Can be changed later by an Admin.</p>
+      <p style={{ color: "#6b7280", fontSize: 12, margin: "12px 0 20px" }}>
+        ℹ️ Can be changed later by an Admin.
+      </p>
       <button onClick={() => onConfirm(role)} disabled={loading} style={btnPrimary(loading)}>
         {loading ? <Spinner /> : "Continue with Google →"}
       </button>
@@ -182,7 +229,7 @@ function GoogleRoleModal({ onConfirm, onCancel, loading }) {
   );
 }
 
-// ─── OTP Verification Screen ──────────────────────────────────────────────────
+// ─── OTP Screen ───────────────────────────────────────────────────────────────
 function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
   const [otp,     setOtp]     = useState("");
   const [error,   setError]   = useState("");
@@ -233,7 +280,6 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
           </div>
           <p className="tagline">Automated Website Testing</p>
         </header>
-
         <div style={{ padding: "0 4px" }}>
           <div style={{ textAlign: "center", marginBottom: 8 }}>
             <span style={{ fontSize: 40 }}>📧</span>
@@ -250,15 +296,12 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
           <p style={{ color: "#6b7280", fontSize: 12, textAlign: "center" }}>
             Code expires in 10 minutes
           </p>
-
           <OTPInput value={otp} onChange={setOtp} />
-
           {error && (
             <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 12 }}>
               {error}
             </div>
           )}
-
           <button
             onClick={handleVerify}
             disabled={loading || otp.length !== 6}
@@ -266,7 +309,6 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
           >
             {loading ? <Spinner /> : "Verify & Continue →"}
           </button>
-
           <div style={{ textAlign: "center", marginTop: 16 }}>
             {resent && (
               <p style={{ color: "#10b981", fontSize: 13, marginBottom: 8 }}>✓ New code sent!</p>
@@ -276,11 +318,9 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
                 Resend code in <strong style={{ color: "#fff" }}>{timer}s</strong>
               </p>
             ) : (
-              <button
-                onClick={handleResend}
+              <button onClick={handleResend}
                 style={{ background: "none", border: "none", color: "#6366f1",
-                  fontSize: 13, cursor: "pointer", fontWeight: 600 }}
-              >
+                  fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Resend code
               </button>
             )}
@@ -288,54 +328,6 @@ function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
         </div>
       </div>
       <GlobalStyles />
-    </div>
-  );
-}
-
-// ─── Shared overlay / modal helpers ──────────────────────────────────────────
-function Overlay({ children, onClose }) {
-  return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
-      }}
-    >
-      <div style={{
-        background: "#0f1623", border: "1px solid rgba(99,102,241,0.3)",
-        borderRadius: 16, padding: 32, width: 400, maxWidth: "90vw",
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModalHeader({ title, onClose }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-      <h2 style={{ color: "#fff", fontSize: 20, margin: 0 }}>{title}</h2>
-      <button onClick={onClose}
-        style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
-        ✕
-      </button>
-    </div>
-  );
-}
-
-function StatusCard({ icon, color, title, body, onClose, closeLabel }) {
-  return (
-    <div style={{ textAlign: "center", padding: "8px 0" }}>
-      <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
-      <p style={{ color, fontWeight: 600, marginBottom: 8, fontSize: 16 }}>{title}</p>
-      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>{body}</p>
-      <button onClick={onClose}
-        style={{ padding: "10px 28px", borderRadius: 8, border: "none",
-          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
-          cursor: "pointer", fontWeight: 600 }}>
-        {closeLabel}
-      </button>
     </div>
   );
 }
@@ -353,33 +345,26 @@ function GlobalStyles() {
   );
 }
 
-// ─── Main Login Component ─────────────────────────────────────────────────────
+// ─── Main Login ───────────────────────────────────────────────────────────────
 export default function Login() {
   const { login, register, verifyOtp, resendOtp, googleLogin, forgotPassword } = useAuth();
   const navigate = useNavigate();
 
-  const [mode,        setMode]        = useState("login");   // "login" | "register"
-  const [screen,      setScreen]      = useState("form");    // "form" | "otp"
-  const [form,        setForm]        = useState({ email: "", password: "", name: "" });
-  const [role,        setRole]        = useState("developer");
-  const [error,       setError]       = useState("");
-  const [loading,     setLoading]     = useState(false);
+  const [mode,         setMode]         = useState("login");
+  const [screen,       setScreen]       = useState("form");
+  const [form,         setForm]         = useState({ email: "", password: "", name: "" });
+  const [role,         setRole]         = useState("developer");
+  const [error,        setError]        = useState("");
+  const [loading,      setLoading]      = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Google flow
-  const [googleToken,    setGoogleToken]    = useState(null);
-  const [showRoleModal,  setShowRoleModal]  = useState(false);
-  const [googleLoading,  setGoogleLoading]  = useState(false);
-
-  // Forgot password
-  const [showForgot, setShowForgot] = useState(false);
-
-  // OTP screen email
-  const [otpEmail, setOtpEmail] = useState("");
+  const [googleToken,  setGoogleToken]  = useState(null);
+  const [showRoleModal,setShowRoleModal]= useState(false);
+  const [googleLoading,setGoogleLoading]= useState(false);
+  const [showForgot,   setShowForgot]   = useState(false);
+  const [otpEmail,     setOtpEmail]     = useState("");
 
   const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // ── Form submit ────────────────────────────────────────────────────────────
   const submit = async (e) => {
     if (e) e.preventDefault();
     setError(""); setLoading(true);
@@ -388,13 +373,11 @@ export default function Login() {
         await login(form.email, form.password);
         navigate("/");
       } else {
-        // Register → backend sends OTP, we show OTP screen
         await register(form.email, form.password, form.name, role);
         setOtpEmail(form.email);
         setScreen("otp");
       }
     } catch (err) {
-      // If backend says email not verified, redirect to OTP screen
       if (err.message === "email_not_verified") {
         setOtpEmail(form.email);
         setScreen("otp");
@@ -406,7 +389,6 @@ export default function Login() {
     }
   };
 
-  // ── Google flow ───────────────────────────────────────────────────────────
   const handleGoogleSuccess = (credentialResponse) => {
     setGoogleToken(credentialResponse.credential);
     setShowRoleModal(true);
@@ -425,22 +407,17 @@ export default function Login() {
     }
   };
 
-  // ── OTP success ────────────────────────────────────────────────────────────
-  const handleOtpSuccess = () => navigate("/");
-
-  // ── Show OTP screen ────────────────────────────────────────────────────────
   if (screen === "otp") {
     return (
       <OTPScreen
         email={otpEmail}
-        onSuccess={handleOtpSuccess}
+        onSuccess={() => navigate("/")}
         verifyOtp={verifyOtp}
         resendOtp={resendOtp}
       />
     );
   }
 
-  // ── Main form ──────────────────────────────────────────────────────────────
   return (
     <div className="login-page">
       <div className="login-card">
@@ -469,10 +446,9 @@ export default function Login() {
           </button>
         </nav>
 
-        {/* Form */}
         <form className="login-form" onSubmit={submit}>
 
-          {/* Name (register only) */}
+          {/* Name — register only */}
           {mode === "register" && (
             <div className="form-field">
               <label htmlFor="name" className="sr-only">Full Name</label>
@@ -484,7 +460,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* Role picker (register only) */}
+          {/* Role picker — register only */}
           {mode === "register" && (
             <div className="form-field">
               <label className="role-label">Select Your Role</label>
@@ -544,9 +520,24 @@ export default function Login() {
                 )}
               </button>
             </div>
+            {/* ✅ FIXED: Forgot password — pure dark style, no CSS class */}
             {mode === "login" && (
-              <button type="button" className="forgot-password"
-                onClick={() => setShowForgot(true)}>
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6366f1",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  padding: "6px 0",
+                  display: "block",
+                  marginLeft: "auto",
+                  textAlign: "right",
+                }}
+              >
                 Forgot password?
               </button>
             )}
@@ -560,7 +551,7 @@ export default function Login() {
           </button>
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "12px 0 4px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0 6px" }}>
             <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
             <span style={{ color: "#4b5563", fontSize: 12, whiteSpace: "nowrap" }}>or continue with</span>
             <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
@@ -581,7 +572,7 @@ export default function Login() {
         </form>
       </div>
 
-      {/* Google Role Modal */}
+      {/* Google Role Modal — pops up after Google sign-in */}
       {showRoleModal && (
         <GoogleRoleModal
           onConfirm={handleGoogleRoleConfirm}
