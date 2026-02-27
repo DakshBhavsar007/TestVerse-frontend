@@ -1,25 +1,31 @@
 /**
- * useAuth.js — Auth context + hook
+ * useAuth.jsx — Auth context + hook
  * Wrap your app root with <AuthProvider>, then call useAuth() anywhere.
- * Stores JWT in localStorage. Provides login, register, logout, authFetch.
+ * Stores JWT in localStorage.
+ *
+ * Provides:
+ *   login, register, googleLogin, logout, authFetch
+ *   sendOtp (alias: register), verifyOtp, resendOtp
+ *   forgotPassword
  */
 import { createContext, useContext, useState, useCallback } from "react";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
-const KEY = "testverse_token";
+const KEY  = "testverse_token";
 const AuthContext = createContext(null);
 
 function _decodeUser(token) {
   try {
     const p = JSON.parse(atob(token.split(".")[1]));
-    // Include id so components like Profile can reference it
     return { email: p.sub, name: p.name, id: p.id || p.sub };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(KEY));
-  const [user, setUser] = useState(() => {
+  const [user,  setUser]  = useState(() => {
     const t = localStorage.getItem(KEY);
     return t ? _decodeUser(t) : null;
   });
@@ -30,24 +36,50 @@ export function AuthProvider({ children }) {
     setUser(userData);
   }, []);
 
-  // role param forwarded to backend so new users get correct role assigned
+  // ── Register (step 1) — sends OTP, does NOT log user in yet ──────────────
   const register = useCallback(async (email, password, name, role = "developer") => {
-    const res = await fetch(`${API}/auth/register`, {
-      method: "POST",
+    const res  = await fetch(`${API}/auth/register`, {
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, role }),
+      body:    JSON.stringify({ email, password, name, role }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Registration failed");
+    // Returns { message: "otp_sent", email }  — no token yet
+    return data;
+  }, []);
+
+  // ── Verify OTP (step 2) — activates account and logs user in ─────────────
+  const verifyOtp = useCallback(async (email, otp) => {
+    const res  = await fetch(`${API}/auth/verify-otp`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email, otp }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "OTP verification failed");
     _store(data.access_token, data.user);
     return data;
   }, [_store]);
 
+  // ── Resend OTP ────────────────────────────────────────────────────────────
+  const resendOtp = useCallback(async (email) => {
+    const res  = await fetch(`${API}/auth/resend-otp`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Could not resend OTP");
+    return data;
+  }, []);
+
+  // ── Login ─────────────────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
-    const res = await fetch(`${API}/auth/login`, {
-      method: "POST",
+    const res  = await fetch(`${API}/auth/login`, {
+      method:  "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ username: email, password }).toString(),
+      body:    new URLSearchParams({ username: email, password }).toString(),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Login failed");
@@ -55,12 +87,39 @@ export function AuthProvider({ children }) {
     return data;
   }, [_store]);
 
+  // ── Google Login ──────────────────────────────────────────────────────────
+  const googleLogin = useCallback(async (googleToken, role = "developer") => {
+    const res  = await fetch(`${API}/auth/google`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ token: googleToken, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Google login failed");
+    _store(data.access_token, data.user);
+    return data;
+  }, [_store]);
+
+  // ── Forgot Password ───────────────────────────────────────────────────────
+  const forgotPassword = useCallback(async (email) => {
+    const res  = await fetch(`${API}/auth/forgot-password`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Request failed");
+    return data; // { message: "google_account" | "If that email exists..." }
+  }, []);
+
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     localStorage.removeItem(KEY);
     setToken(null);
     setUser(null);
   }, []);
 
+  // ── Authenticated fetch ───────────────────────────────────────────────────
   const authFetch = useCallback(async (url, options = {}) => {
     const res = await fetch(url, {
       ...options,
@@ -70,12 +129,21 @@ export function AuthProvider({ children }) {
         Authorization: `Bearer ${token}`,
       },
     });
-    if (res.status === 401) { logout(); throw new Error("Session expired — please log in again"); }
+    if (res.status === 401) {
+      logout();
+      throw new Error("Session expired — please log in again");
+    }
     return res;
   }, [token, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, login, register, logout, authFetch, isLoggedIn: !!token }}>
+    <AuthContext.Provider value={{
+      user, setUser, token,
+      login, register, verifyOtp, resendOtp,
+      googleLogin, forgotPassword,
+      logout, authFetch,
+      isLoggedIn: !!token,
+    }}>
       {children}
     </AuthContext.Provider>
   );

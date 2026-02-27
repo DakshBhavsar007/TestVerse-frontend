@@ -1,31 +1,222 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../hooks/useAuth";
 import "./Login.css";
 
-export default function Login() {
-  const { login, register } = useAuth();
-  const navigate = useNavigate();
-  const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
-  const [role, setRole] = useState("developer");
-  const [error, setError] = useState("");
+const ROLES = [
+  { id: "admin",     icon: "👑", label: "Admin",     desc: "Full access — billing, team, config", color: "#f59e0b" },
+  { id: "developer", icon: "💻", label: "Developer", desc: "Run tests, schedules, API keys",       color: "#6366f1" },
+  { id: "viewer",    icon: "👁️",  label: "Viewer",    desc: "Read-only — results & reports",       color: "#6b7280" },
+];
+
+// ─── Shared style helpers ────────────────────────────────────────────────────
+const inputStyle = {
+  width: "100%", padding: "12px 14px", borderRadius: 8,
+  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+  color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none",
+};
+
+const btnPrimary = (disabled) => ({
+  width: "100%", padding: "12px", borderRadius: 10, border: "none",
+  background: disabled
+    ? "rgba(99,102,241,0.4)"
+    : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  color: "#fff", fontWeight: 600, fontSize: 15,
+  cursor: disabled ? "not-allowed" : "pointer", transition: "opacity 0.2s",
+});
+
+const Spinner = () => (
+  <div style={{
+    width: 18, height: 18, margin: "0 auto",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#fff", borderRadius: "50%",
+    animation: "spin 0.6s linear infinite",
+  }} />
+);
+
+// ─── OTP Input — 6 boxes ─────────────────────────────────────────────────────
+function OTPInput({ value, onChange }) {
+  const refs = Array.from({ length: 6 }, () => useRef(null));
+  const digits = value.padEnd(6, "").split("");
+
+  const handleKey = (i, e) => {
+    if (e.key === "Backspace") {
+      const next = value.slice(0, i) + value.slice(i + 1);
+      onChange(next);
+      if (i > 0) refs[i - 1].current?.focus();
+      return;
+    }
+    if (!/^\d$/.test(e.key)) return;
+    const next = value.slice(0, i) + e.key + value.slice(i + 1);
+    onChange(next.slice(0, 6));
+    if (i < 5) refs[i + 1].current?.focus();
+  };
+
+  const handlePaste = (e) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted) { onChange(pasted); refs[Math.min(pasted.length, 5)].current?.focus(); }
+    e.preventDefault();
+  };
+
+  return (
+    <div style={{ display: "flex", gap: 10, justifyContent: "center", margin: "20px 0" }}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={refs[i]}
+          value={d.trim()}
+          onChange={() => {}}
+          onKeyDown={(e) => handleKey(i, e)}
+          onPaste={handlePaste}
+          maxLength={1}
+          style={{
+            width: 46, height: 54, textAlign: "center", fontSize: 22, fontWeight: 700,
+            borderRadius: 10, border: `2px solid ${d.trim() ? "#6366f1" : "rgba(255,255,255,0.15)"}`,
+            background: d.trim() ? "rgba(99,102,241,0.1)" : "rgba(255,255,255,0.04)",
+            color: "#fff", outline: "none", transition: "border-color 0.15s",
+          }}
+          autoFocus={i === 0}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Role Picker (shared by register + Google) ────────────────────────────────
+function RolePicker({ selected, onSelect }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {ROLES.map((r) => (
+        <button
+          key={r.id}
+          type="button"
+          onClick={() => onSelect(r.id)}
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "12px 16px", borderRadius: 10, cursor: "pointer",
+            background: selected === r.id ? `${r.color}20` : "rgba(255,255,255,0.03)",
+            border: `1px solid ${selected === r.id ? r.color : "rgba(255,255,255,0.1)"}`,
+            transition: "all 0.2s", textAlign: "left",
+          }}
+        >
+          <span style={{ fontSize: 22 }}>{r.icon}</span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: "block", color: selected === r.id ? r.color : "#fff", fontWeight: 600, fontSize: 14 }}>{r.label}</span>
+            <span style={{ display: "block", color: "#6b7280", fontSize: 12 }}>{r.desc}</span>
+          </span>
+          {selected === r.id && <span style={{ color: r.color, fontWeight: 700, fontSize: 16 }}>✓</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Forgot Password Modal ────────────────────────────────────────────────────
+function ForgotModal({ onClose, forgotPassword }) {
+  const [email,   setEmail]  = useState("");
+  const [status,  setStatus] = useState(""); // "sent" | "google" | "error"
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const submit = async (e) => {
-    if (e) e.preventDefault();
-    setError(""); setLoading(true);
+  const submit = async () => {
+    setLoading(true); setStatus("");
     try {
-      if (mode === "login") await login(form.email, form.password);
-      else await register(form.email, form.password, form.name, role);
-      navigate("/");
-    } catch (err) {
-      setError(err.message);
+      const data = await forgotPassword(email);
+      setStatus(data.message === "google_account" ? "google" : "sent");
+    } catch {
+      setStatus("error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  return (
+    <Overlay onClose={onClose}>
+      <ModalHeader title="🔐 Forgot Password" onClose={onClose} />
+
+      {!status && (
+        <>
+          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>
+            Enter your email and we'll send you a reset link.
+          </p>
+          <input
+            type="email" placeholder="Your email address"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            style={{ ...inputStyle, marginBottom: 16 }}
+          />
+          <button onClick={submit} disabled={loading || !email} style={btnPrimary(loading || !email)}>
+            {loading ? <Spinner /> : "Send Reset Link →"}
+          </button>
+        </>
+      )}
+
+      {status === "sent" && (
+        <StatusCard icon="📬" color="#10b981" title="Reset link sent!"
+          body="Check your inbox. The link expires in 1 hour." onClose={onClose} closeLabel="Close" />
+      )}
+      {status === "google" && (
+        <StatusCard icon="🔗" color="#f59e0b" title="Google Account Detected"
+          body={<>This email uses Google Sign-In.<br />Please use <strong style={{ color: "#fff" }}>Sign in with Google</strong> instead.</>}
+          onClose={onClose} closeLabel="Got it" />
+      )}
+      {status === "error" && (
+        <p style={{ color: "#ef4444", fontSize: 14 }}>Something went wrong. Please try again.</p>
+      )}
+    </Overlay>
+  );
+}
+
+// ─── Google Role Modal ────────────────────────────────────────────────────────
+function GoogleRoleModal({ onConfirm, onCancel, loading }) {
+  const [role, setRole] = useState("developer");
+  return (
+    <Overlay onClose={onCancel}>
+      <ModalHeader title="Select Your Role" onClose={onCancel} />
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>Choose how you'll use TestVerse</p>
+      <RolePicker selected={role} onSelect={setRole} />
+      <p style={{ color: "#6b7280", fontSize: 12, margin: "12px 0 20px" }}>ℹ️ Can be changed later by an Admin.</p>
+      <button onClick={() => onConfirm(role)} disabled={loading} style={btnPrimary(loading)}>
+        {loading ? <Spinner /> : "Continue with Google →"}
+      </button>
+    </Overlay>
+  );
+}
+
+// ─── OTP Verification Screen ──────────────────────────────────────────────────
+function OTPScreen({ email, onSuccess, verifyOtp, resendOtp }) {
+  const [otp,     setOtp]     = useState("");
+  const [error,   setError]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resent,  setResent]  = useState(false);
+  const [timer,   setTimer]   = useState(30);
+
+  useEffect(() => {
+    if (timer <= 0) return;
+    const id = setTimeout(() => setTimer((t) => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [timer]);
+
+  const handleVerify = async () => {
+    if (otp.length !== 6) { setError("Please enter all 6 digits."); return; }
+    setError(""); setLoading(true);
+    try {
+      await verifyOtp(email, otp);
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+      setOtp("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError(""); setResent(false);
+    try {
+      await resendOtp(email);
+      setResent(true); setTimer(30); setOtp("");
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -34,72 +225,272 @@ export default function Login() {
       <div className="login-card">
         <header className="login-header">
           <div className="logo-container">
-            <svg
-              className="logo-icon"
-              viewBox="0 0 24 24"
-              width="32"
-              height="32"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            <svg className="logo-icon" viewBox="0 0 24 24" width="32" height="32"
+              stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
             </svg>
             <h1 className="brand-name">TestVerse</h1>
           </div>
           <p className="tagline">Automated Website Testing</p>
         </header>
 
-        <nav className="login-tabs">
+        <div style={{ padding: "0 4px" }}>
+          <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 40 }}>📧</span>
+          </div>
+          <h2 style={{ color: "#fff", textAlign: "center", fontSize: 20, marginBottom: 8 }}>
+            Verify your email
+          </h2>
+          <p style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 4 }}>
+            We sent a 6-digit code to
+          </p>
+          <p style={{ color: "#6366f1", fontSize: 14, textAlign: "center", fontWeight: 600, marginBottom: 4 }}>
+            {email}
+          </p>
+          <p style={{ color: "#6b7280", fontSize: 12, textAlign: "center" }}>
+            Code expires in 10 minutes
+          </p>
+
+          <OTPInput value={otp} onChange={setOtp} />
+
+          {error && (
+            <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 12 }}>
+              {error}
+            </div>
+          )}
+
           <button
-            className={`tab-button ${mode === "login" ? "active" : ""}`}
-            onClick={() => setMode("login")}
-            type="button"
+            onClick={handleVerify}
+            disabled={loading || otp.length !== 6}
+            style={btnPrimary(loading || otp.length !== 6)}
           >
+            {loading ? <Spinner /> : "Verify & Continue →"}
+          </button>
+
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            {resent && (
+              <p style={{ color: "#10b981", fontSize: 13, marginBottom: 8 }}>✓ New code sent!</p>
+            )}
+            {timer > 0 ? (
+              <p style={{ color: "#6b7280", fontSize: 13 }}>
+                Resend code in <strong style={{ color: "#fff" }}>{timer}s</strong>
+              </p>
+            ) : (
+              <button
+                onClick={handleResend}
+                style={{ background: "none", border: "none", color: "#6366f1",
+                  fontSize: 13, cursor: "pointer", fontWeight: 600 }}
+              >
+                Resend code
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      <GlobalStyles />
+    </div>
+  );
+}
+
+// ─── Shared overlay / modal helpers ──────────────────────────────────────────
+function Overlay({ children, onClose }) {
+  return (
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
+      }}
+    >
+      <div style={{
+        background: "#0f1623", border: "1px solid rgba(99,102,241,0.3)",
+        borderRadius: 16, padding: 32, width: 400, maxWidth: "90vw",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ title, onClose }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <h2 style={{ color: "#fff", fontSize: 20, margin: 0 }}>{title}</h2>
+      <button onClick={onClose}
+        style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
+function StatusCard({ icon, color, title, body, onClose, closeLabel }) {
+  return (
+    <div style={{ textAlign: "center", padding: "8px 0" }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
+      <p style={{ color, fontWeight: 600, marginBottom: 8, fontSize: 16 }}>{title}</p>
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>{body}</p>
+      <button onClick={onClose}
+        style={{ padding: "10px 28px", borderRadius: 8, border: "none",
+          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+          cursor: "pointer", fontWeight: 600 }}>
+        {closeLabel}
+      </button>
+    </div>
+  );
+}
+
+function GlobalStyles() {
+  return (
+    <style>{`
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0;
+        margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+        white-space: nowrap; border-width: 0;
+      }
+    `}</style>
+  );
+}
+
+// ─── Main Login Component ─────────────────────────────────────────────────────
+export default function Login() {
+  const { login, register, verifyOtp, resendOtp, googleLogin, forgotPassword } = useAuth();
+  const navigate = useNavigate();
+
+  const [mode,        setMode]        = useState("login");   // "login" | "register"
+  const [screen,      setScreen]      = useState("form");    // "form" | "otp"
+  const [form,        setForm]        = useState({ email: "", password: "", name: "" });
+  const [role,        setRole]        = useState("developer");
+  const [error,       setError]       = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Google flow
+  const [googleToken,    setGoogleToken]    = useState(null);
+  const [showRoleModal,  setShowRoleModal]  = useState(false);
+  const [googleLoading,  setGoogleLoading]  = useState(false);
+
+  // Forgot password
+  const [showForgot, setShowForgot] = useState(false);
+
+  // OTP screen email
+  const [otpEmail, setOtpEmail] = useState("");
+
+  const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // ── Form submit ────────────────────────────────────────────────────────────
+  const submit = async (e) => {
+    if (e) e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      if (mode === "login") {
+        await login(form.email, form.password);
+        navigate("/");
+      } else {
+        // Register → backend sends OTP, we show OTP screen
+        await register(form.email, form.password, form.name, role);
+        setOtpEmail(form.email);
+        setScreen("otp");
+      }
+    } catch (err) {
+      // If backend says email not verified, redirect to OTP screen
+      if (err.message === "email_not_verified") {
+        setOtpEmail(form.email);
+        setScreen("otp");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Google flow ───────────────────────────────────────────────────────────
+  const handleGoogleSuccess = (credentialResponse) => {
+    setGoogleToken(credentialResponse.credential);
+    setShowRoleModal(true);
+  };
+
+  const handleGoogleRoleConfirm = async (selectedRole) => {
+    setGoogleLoading(true);
+    try {
+      await googleLogin(googleToken, selectedRole);
+      navigate("/");
+    } catch (err) {
+      setError(err.message);
+      setShowRoleModal(false);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // ── OTP success ────────────────────────────────────────────────────────────
+  const handleOtpSuccess = () => navigate("/");
+
+  // ── Show OTP screen ────────────────────────────────────────────────────────
+  if (screen === "otp") {
+    return (
+      <OTPScreen
+        email={otpEmail}
+        onSuccess={handleOtpSuccess}
+        verifyOtp={verifyOtp}
+        resendOtp={resendOtp}
+      />
+    );
+  }
+
+  // ── Main form ──────────────────────────────────────────────────────────────
+  return (
+    <div className="login-page">
+      <div className="login-card">
+
+        {/* Header */}
+        <header className="login-header">
+          <div className="logo-container">
+            <svg className="logo-icon" viewBox="0 0 24 24" width="32" height="32"
+              stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+            <h1 className="brand-name">TestVerse</h1>
+          </div>
+          <p className="tagline">Automated Website Testing</p>
+        </header>
+
+        {/* Tabs */}
+        <nav className="login-tabs">
+          <button className={`tab-button ${mode === "login" ? "active" : ""}`}
+            onClick={() => { setMode("login"); setError(""); }} type="button">
             Login
           </button>
-          <button
-            className={`tab-button ${mode === "register" ? "active" : ""}`}
-            onClick={() => setMode("register")}
-            type="button"
-          >
+          <button className={`tab-button ${mode === "register" ? "active" : ""}`}
+            onClick={() => { setMode("register"); setError(""); }} type="button">
             Register
           </button>
         </nav>
 
+        {/* Form */}
         <form className="login-form" onSubmit={submit}>
+
+          {/* Name (register only) */}
           {mode === "register" && (
             <div className="form-field">
               <label htmlFor="name" className="sr-only">Full Name</label>
               <div className="input-container">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Full name"
-                  className="auth-input"
-                  value={form.name}
-                  onChange={handle}
-                  required={mode === "register"}
-                />
+                <input id="name" name="name" type="text" placeholder="Full name"
+                  className="auth-input" value={form.name} onChange={handle}
+                  required={mode === "register"} />
               </div>
             </div>
           )}
 
+          {/* Role picker (register only) */}
           {mode === "register" && (
             <div className="form-field">
               <label className="role-label">Select Your Role</label>
               <div className="role-options">
-                {[
-                  { id: "admin",     icon: "👑", label: "Admin",     desc: "Full access — billing, team, config",    color: "#f59e0b" },
-                  { id: "developer", icon: "💻", label: "Developer", desc: "Run tests, schedules, API keys",          color: "#6366f1" },
-                  { id: "viewer",    icon: "👁️",  label: "Viewer",    desc: "Read-only — results & reports",          color: "#6b7280" },
-                ].map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
+                {ROLES.map((r) => (
+                  <button key={r.id} type="button"
                     onClick={() => setRole(r.id)}
                     className={`role-option ${role === r.id ? "role-option--active" : ""}`}
                     style={role === r.id ? { "--role-color": r.color } : {}}
@@ -120,89 +511,94 @@ export default function Login() {
             </div>
           )}
 
+          {/* Email */}
           <div className="form-field">
             <label htmlFor="email" className="sr-only">Email Address</label>
             <div className="input-container">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Email address"
-                className="auth-input"
-                value={form.email}
-                onChange={handle}
-                required
-              />
+              <input id="email" name="email" type="email" placeholder="Email address"
+                className="auth-input" value={form.email} onChange={handle} required />
             </div>
           </div>
 
+          {/* Password */}
           <div className="form-field">
             <label htmlFor="password" className="sr-only">Password</label>
             <div className="input-container password-wrapper">
-              <input
-                id="password"
-                name="password"
+              <input id="password" name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Password (min 8 chars)"
-                className="auth-input"
-                value={form.password}
-                onChange={handle}
-                required
-                minLength={8}
-              />
-              <button
-                type="button"
-                className="password-toggle"
+                placeholder="Password (min 8 chars)" className="auth-input"
+                value={form.password} onChange={handle} required minLength={8} />
+              <button type="button" className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
+                aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? (
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
                   </svg>
                 ) : (
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 )}
               </button>
             </div>
             {mode === "login" && (
-              <a href="#forgot" className="forgot-password">Forgot password?</a>
+              <button type="button" className="forgot-password"
+                onClick={() => setShowForgot(true)}>
+                Forgot password?
+              </button>
             )}
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
+          {/* Submit */}
           <button className="submit-button" type="submit" disabled={loading}>
-            {loading ? (
-              <div className="spinner-sm" style={{
-                width: "18px",
-                height: "18px",
-                border: "2px solid rgba(255,255,255,0.3)",
-                borderTopColor: "#fff",
-                borderRadius: "50%",
-                animation: "spin 0.6s linear infinite"
-              }} />
-            ) : mode === "login" ? "Sign In" : "Create Account"}
+            {loading ? <Spinner /> : mode === "login" ? "Sign In" : "Create Account"}
           </button>
+
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "12px 0 4px" }}>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
+            <span style={{ color: "#4b5563", fontSize: 12, whiteSpace: "nowrap" }}>or continue with</span>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
+          </div>
+
+          {/* Google Button */}
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google sign-in failed. Please try again.")}
+              theme="filled_black"
+              shape="rectangular"
+              text={mode === "login" ? "signin_with" : "signup_with"}
+              width="320"
+            />
+          </div>
+
         </form>
       </div>
-      <style>{`
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border-width: 0;
-        }
-      `}</style>
+
+      {/* Google Role Modal */}
+      {showRoleModal && (
+        <GoogleRoleModal
+          onConfirm={handleGoogleRoleConfirm}
+          onCancel={() => setShowRoleModal(false)}
+          loading={googleLoading}
+        />
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgot && (
+        <ForgotModal
+          onClose={() => setShowForgot(false)}
+          forgotPassword={forgotPassword}
+        />
+      )}
+
+      <GlobalStyles />
     </div>
   );
 }

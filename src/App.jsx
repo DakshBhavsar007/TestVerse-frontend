@@ -38,6 +38,8 @@ import OpenAPIImport from "./pages/OpenAPIImport";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import Navbar from "./pages/Navbar";
+// Auth
+import ResetPassword from "./pages/ResetPassword";
 
 function PrivateRoute({ children }) {
   const { user, loading, logout } = useAuth();
@@ -64,6 +66,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/share/:token" element={<Share />} />
 
           {/* Protected */}
