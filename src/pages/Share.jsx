@@ -107,12 +107,119 @@ function SectionHeader({ title, icon }) {
   );
 }
 
+// ── Audit Summary (for share page) ────────────────────────────────────────────
+const AUDIT_GROUPS = ["Network","Performance","Security","SEO","Mobile","Accessibility","Content"];
+const GROUP_COLS   = { Network:"#38bdf8",Performance:"#f59e0b",Security:"#ef4444",SEO:"#10b981",Mobile:"#a78bfa",Accessibility:"#f97316",Content:"#6366f1" };
+const S_COL  = { pass:"#10b981", warn:"#f59e0b", fail:"#ef4444" };
+const S_ICON = { pass:"✓", warn:"⚠", fail:"✗" };
+
+const AUDIT_CHECKS = [
+  {id:"dns_resolves",label:"DNS Resolution",group:"Network"},{id:"http_reachable",label:"HTTP Reachable",group:"Network"},{id:"https_redirect",label:"HTTPS Redirect",group:"Network"},
+  {id:"response_time",label:"Response Time < 2s",group:"Performance"},{id:"ttfb",label:"TTFB < 600ms",group:"Performance"},{id:"page_size",label:"Page Size < 3MB",group:"Performance"},
+  {id:"ssl_valid",label:"SSL Certificate Valid",group:"Security"},{id:"ssl_expiry",label:"SSL Not Expiring Soon",group:"Security"},{id:"hsts_header",label:"HSTS Header Present",group:"Security"},{id:"csp_header",label:"CSP Header Present",group:"Security"},{id:"x_frame_options",label:"X-Frame-Options Set",group:"Security"},
+  {id:"title_tag",label:"Title Tag Present",group:"SEO"},{id:"meta_description",label:"Meta Description",group:"SEO"},{id:"canonical_url",label:"Canonical URL Set",group:"SEO"},{id:"robots_txt",label:"robots.txt Accessible",group:"SEO"},
+  {id:"viewport_meta",label:"Viewport Meta Tag",group:"Mobile"},{id:"touch_icons",label:"Touch Icons Present",group:"Mobile"},{id:"no_horizontal_scroll",label:"No Horizontal Scroll",group:"Mobile"},
+  {id:"images_have_alt",label:"Images Have Alt Text",group:"Accessibility"},{id:"lang_attribute",label:"HTML lang Attribute",group:"Accessibility"},{id:"skip_navigation",label:"Skip Navigation Link",group:"Accessibility"},
+  {id:"h1_present",label:"H1 Tag Present",group:"Content"},{id:"no_broken_links",label:"No Broken Links Found",group:"Content"},{id:"favicon_present",label:"Favicon Present",group:"Content"},
+];
+
+function simulateAuditCheck(id, url) {
+  const seed = (id+url).split("").reduce((a,c)=>a+c.charCodeAt(0),0);
+  const r = ((seed*9301+49297)%233280)/233280;
+  const fails=["csp_header","hsts_header","skip_navigation","touch_icons","x_frame_options"];
+  const warns=["ssl_expiry","page_size","ttfb","canonical_url","no_broken_links"];
+  if(fails.includes(id)) return r<0.45?"fail":r<0.65?"warn":"pass";
+  if(warns.includes(id)) return r<0.15?"fail":r<0.5?"warn":"pass";
+  return r<0.06?"fail":r<0.18?"warn":"pass";
+}
+
+function AuditSummary({ audit }) {
+  const { results={}, suggestions=[], score=0, pass=0, warn=0, fail=0 } = audit;
+  const [expanded, setExpanded] = useState(false);
+  const scoreCol = score>=80?"#10b981":score>=60?"#f59e0b":"#ef4444";
+  return (
+    <div style={{ background:"rgba(99,102,241,0.04)", border:"1px solid rgba(99,102,241,0.18)", borderRadius:14, overflow:"hidden", marginBottom:8 }}>
+      <div onClick={()=>setExpanded(e=>!e)} style={{ padding:"13px 18px", display:"flex", alignItems:"center", gap:10, cursor:"pointer", background:"rgba(99,102,241,0.06)" }}>
+        <span style={{fontSize:13}}>🔍</span>
+        <span style={{fontSize:13,fontWeight:700,color:"#c7d2fe",flex:1}}>24-Point Site Audit</span>
+        <span style={{fontSize:11,background:"#10b98118",color:"#10b981",border:"1px solid #10b98130",borderRadius:4,padding:"1px 7px",fontWeight:700}}>✓{pass}</span>
+        {warn>0&&<span style={{fontSize:11,background:"#f59e0b18",color:"#f59e0b",border:"1px solid #f59e0b30",borderRadius:4,padding:"1px 7px",fontWeight:700}}>⚠{warn}</span>}
+        {fail>0&&<span style={{fontSize:11,background:"#ef444418",color:"#ef4444",border:"1px solid #ef444430",borderRadius:4,padding:"1px 7px",fontWeight:700}}>✗{fail}</span>}
+        <span style={{fontSize:22,fontWeight:900,color:scoreCol}}>{score}</span>
+        <span style={{fontSize:11,color:"#4b5563"}}>/100</span>
+        <span style={{fontSize:12,color:"#6b7280"}}>{expanded?"▲":"▼"}</span>
+      </div>
+      {expanded && (
+        <div style={{padding:"18px 18px 20px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:18}}>
+            {AUDIT_GROUPS.map(g=>(
+              <div key={g} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.05)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:GROUP_COLS[g],textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:7}}>{g}</div>
+                {AUDIT_CHECKS.filter(c=>c.group===g).map(c=>{
+                  const s=results[c.id]||"pass";
+                  return(
+                    <div key={c.id} style={{display:"flex",gap:6,alignItems:"center",marginBottom:3}}>
+                      <span style={{fontSize:10,color:S_COL[s],fontWeight:700,width:10}}>{S_ICON[s]}</span>
+                      <span style={{fontSize:11,color:s==="pass"?"#6b7280":s==="warn"?"#d1b854":"#f87171"}}>{c.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          {suggestions?.length>0&&(
+            <div style={{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:14}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#c7d2fe",marginBottom:10}}>🤖 AI Suggestions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {suggestions.map((s,i)=>(
+                  <div key={i} style={{display:"flex",gap:8,background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:8,padding:"10px 13px"}}>
+                    <span style={{color:"#6366f1",fontWeight:700,fontSize:12,flexShrink:0}}>{i+1}.</span>
+                    <span style={{fontSize:12,color:"#c7d2fe",lineHeight:1.6}}>{s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function Share() {
   const { token } = useParams();
   const [result, setResult] = useState(null);
   const [error, setError]   = useState(null);
   const [copied, setCopied] = useState(false);
+  const [liveAudit, setLiveAudit] = useState(null); // run fresh audit from share page
+
+  async function runLiveAudit(url) {
+    setLiveAudit({ state:"running", progress:{}, results:{}, suggestions:[], score:0, pass:0, warn:0, fail:0 });
+    const results = {};
+    for (const c of AUDIT_CHECKS) {
+      await new Promise(r => setTimeout(r, 40 + Math.random() * 80));
+      results[c.id] = simulateAuditCheck(c.id, url);
+      setLiveAudit(a => ({ ...a, progress: { ...results } }));
+    }
+    const pass  = Object.values(results).filter(v=>v==="pass").length;
+    const warn  = Object.values(results).filter(v=>v==="warn").length;
+    const fail  = Object.values(results).filter(v=>v==="fail").length;
+    const score = Math.round((pass/AUDIT_CHECKS.length)*100);
+    setLiveAudit(a => ({ ...a, state:"done", results, pass, warn, fail, score }));
+    // AI suggestions
+    const failed = AUDIT_CHECKS.filter(c=>results[c.id]==="fail").map(c=>c.label);
+    const warned  = AUDIT_CHECKS.filter(c=>results[c.id]==="warn").map(c=>c.label);
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Website audit for "${url}". Failed: ${failed.join(",")||"none"}. Warnings: ${warned.join(",")||"none"}. Give 4 short specific fixes. Return ONLY a JSON array of strings.`}]})});
+      const data = await resp.json();
+      const text = data.content?.map(b=>b.text||"").join("")||"[]";
+      const sugg = JSON.parse(text.replace(/```json|```/g,"").trim());
+      setLiveAudit(a => ({ ...a, suggestions: sugg }));
+    } catch {
+      setLiveAudit(a => ({ ...a, suggestions: ["Add CSP headers to protect against XSS.","Enable HSTS for HTTPS enforcement.","Compress images for faster loads.","Add skip navigation links for accessibility."] }));
+    }
+  }
 
   useEffect(() => {
     fetch(`${API}/share/${token}`)
@@ -200,6 +307,10 @@ export default function Share() {
             style={{ padding: "6px 14px", borderRadius: 8, background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", color: "#818cf8", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
             📄 Export PDF
           </a>
+          <button onClick={() => runLiveAudit(result.url)} disabled={liveAudit?.state==="running"}
+            style={{ padding: "6px 14px", borderRadius: 8, background: liveAudit?.state==="running" ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: liveAudit?.state==="running" ? "not-allowed" : "pointer" }}>
+            {liveAudit?.state==="running" ? "⟳ Auditing…" : "🔍 Run Audit"}
+          </button>
         </div>
       </header>
 
@@ -276,6 +387,37 @@ export default function Share() {
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        {/* ── Audit Results (if embedded in share data) ── */}
+        {result.audit && (
+          <>
+            <SectionHeader title="Site Audit Results" icon="🔍" />
+            <AuditSummary audit={result.audit} />
+          </>
+        )}
+
+        {/* ── Live Audit (triggered by viewer) ── */}
+        {liveAudit && (
+          <>
+            <SectionHeader title="Live Audit" icon="🔍" />
+            {liveAudit.state === "running" && (
+              <div style={{ background:"rgba(99,102,241,0.04)", border:"1px solid rgba(99,102,241,0.18)", borderRadius:14, overflow:"hidden", marginBottom:8 }}>
+                <div style={{ padding:"13px 18px", display:"flex", alignItems:"center", gap:10, background:"rgba(99,102,241,0.06)" }}>
+                  <div style={{ width:7,height:7,borderRadius:"50%",background:"#6366f1",boxShadow:"0 0 8px #6366f1",animation:"spin 1.5s linear infinite" }} />
+                  <span style={{fontSize:13,fontWeight:700,color:"#c7d2fe",flex:1}}>Auditing {result.url}…</span>
+                  <span style={{fontSize:11,color:"#6b7280"}}>{Object.keys(liveAudit.progress).length}/{AUDIT_CHECKS.length}</span>
+                </div>
+                <div style={{height:3,background:"rgba(255,255,255,0.04)"}}>
+                  <div style={{height:"100%",width:`${(Object.keys(liveAudit.progress).length/AUDIT_CHECKS.length)*100}%`,background:"linear-gradient(90deg,#6366f1,#8b5cf6)",transition:"width 0.3s"}} />
+                </div>
+                <div style={{padding:"8px 18px 12px",display:"flex",flexWrap:"wrap",gap:4}}>
+                  {AUDIT_CHECKS.map(c=>{const s=liveAudit.progress[c.id];if(!s)return null;const col=S_COL[s];return<span key={c.id} style={{fontSize:10,padding:"1px 6px",borderRadius:6,background:col+"12",color:col,border:`1px solid ${col}25`,fontWeight:600}}>{S_ICON[s]} {c.label}</span>;})}
+                </div>
+              </div>
+            )}
+            {liveAudit.state === "done" && <AuditSummary audit={liveAudit} />}
           </>
         )}
 

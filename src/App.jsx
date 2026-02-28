@@ -40,6 +40,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Navbar from "./pages/Navbar";
 // Auth
 import ResetPassword from "./pages/ResetPassword";
+// Audit
+import TestVerseAudit from "./pages/testverse-audit";
 
 function PrivateRoute({ children }) {
   const { user, loading, logout } = useAuth();
@@ -112,6 +114,9 @@ export default function App() {
           {/* Profile */}
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+
+          {/* Audit */}
+          <Route path="/audit" element={<PrivateRoute><TestVerseAudit /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
