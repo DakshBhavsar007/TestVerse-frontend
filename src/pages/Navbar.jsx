@@ -22,7 +22,10 @@ const NAV_GROUPS = [
       { to: "/bulk", icon: "⊞", label: "Bulk Test" },
       { to: "/templates", icon: "▤", label: "Templates" },
       { to: "/monitoring", icon: "◉", label: "Monitors" },
-      { to: "/openapi-import", icon: "⚡", label: "OpenAPI API" },
+      { to: "/openapi-import", icon: "⚡", label: "OpenAPI Import" },
+      { to: "/live-check", icon: "🔴", label: "Live Checker" },
+      { to: "/audit", icon: "🔍", label: "Site Audit" },
+      { to: "/feature-test", icon: "🤖", label: "Feature Test" },
     ],
   },
   {

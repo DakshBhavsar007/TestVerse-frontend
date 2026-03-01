@@ -43,6 +43,8 @@ import ResetPassword from "./pages/ResetPassword";
 // Audit & Live Checker
 import TestVerseAudit from "./pages/testverse-audit";
 import LiveChecker from "./pages/LiveChecker";
+// Phase 8F — Human-Like Feature Testing
+import FeatureTest from "./pages/FeatureTest";
 
 function PrivateRoute({ children }) {
   const { user, loading, logout } = useAuth();
@@ -119,6 +121,7 @@ export default function App() {
           {/* Tools */}
           <Route path="/audit" element={<PrivateRoute><TestVerseAudit /></PrivateRoute>} />
           <Route path="/live-check" element={<PrivateRoute><LiveChecker /></PrivateRoute>} />
+          <Route path="/feature-test" element={<PrivateRoute><FeatureTest /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

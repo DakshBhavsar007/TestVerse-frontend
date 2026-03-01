@@ -8,7 +8,7 @@ const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const card = { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 24 };
 
 const PLAN_COLORS = { free: "#6b7280", pro: "#6366f1", enterprise: "#f59e0b" };
-const PLAN_ICONS  = { free: "🪶", pro: "⚡", enterprise: "🏢" };
+const PLAN_ICONS = { free: "🪶", pro: "⚡", enterprise: "🏢" };
 
 function UsageBar({ label, used, limit, unlimited }) {
   const pct = unlimited ? 0 : Math.min((used / limit) * 100, 100);
@@ -42,22 +42,25 @@ export default function Billing() {
   const [changing, setChanging] = useState(false);
   const [confirmPlan, setConfirmPlan] = useState(null);
   const [msg, setMsg] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [planRes, plansRes, histRes, invRes] = await Promise.all([
+      const [planRes, plansRes, histRes, invRes, roleRes] = await Promise.all([
         authFetch(`${API}/billing/my-plan`),
         authFetch(`${API}/billing/plans`),
         authFetch(`${API}/billing/usage-history`),
         authFetch(`${API}/billing/invoices`),
+        authFetch(`${API}/rbac/my-role`),
       ]);
       if (planRes.ok) setPlan(await planRes.json());
       if (plansRes.ok) setAllPlans((await plansRes.json()).plans || {});
       if (histRes.ok) setHistory((await histRes.json()).history || []);
       if (invRes.ok) setInvoices((await invRes.json()).invoices || []);
+      if (roleRes.ok) { const rd = await roleRes.json(); setIsAdmin(rd.role === "admin"); }
     } catch (e) { console.error(e); }
     setLoading(false);
   }
@@ -159,9 +162,30 @@ export default function Billing() {
               </div>
             </div>
 
-            {/* Plan Selector */}
+            {/* Plan Selector — Admin Only */}
             <div style={{ ...card, marginBottom: 24 }}>
-              <h3 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700 }}>🔄 Change Plan</h3>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>🔄 Change Plan</h3>
+                {!isAdmin && (
+                  <div style={{
+                    background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)",
+                    borderRadius: 20, padding: "3px 12px",
+                    fontSize: 11, color: "#f59e0b", fontWeight: 700,
+                  }}>
+                    🔒 Admin Only
+                  </div>
+                )}
+              </div>
+              {!isAdmin && (
+                <div style={{
+                  background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
+                  borderRadius: 10, padding: "12px 16px",
+                  fontSize: 13, color: "#fbbf24", marginBottom: 20, lineHeight: 1.6,
+                }}>
+                  ⚠️ Plan changes can only be made by your <strong>System Administrator</strong>.
+                  Contact them to upgrade or downgrade your subscription.
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
                 {Object.entries(allPlans).map(([key, p]) => {
                   const isActive = plan.plan === key;
@@ -177,7 +201,7 @@ export default function Billing() {
                         {p.limits.team_members === -1 ? "Unlimited members" : `${p.limits.team_members} team member${p.limits.team_members !== 1 ? "s" : ""}`}<br />
                         {p.limits.monitors === -1 ? "Unlimited monitors" : `${p.limits.monitors} uptime monitor${p.limits.monitors !== 1 ? "s" : ""}`}
                       </div>
-                      {!isActive && (
+                      {!isActive && isAdmin && (
                         confirmPlan === key ? (
                           <div style={{ display: "flex", gap: 6 }}>
                             <button onClick={() => changePlan(key)} disabled={changing} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: color, color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Confirm</button>
@@ -188,6 +212,11 @@ export default function Billing() {
                             {plan.plan === "enterprise" || (plan.plan === "pro" && key === "free") ? "Downgrade" : "Upgrade"} to {p.name}
                           </button>
                         )
+                      )}
+                      {!isActive && !isAdmin && (
+                        <div style={{ fontSize: 11, color: "#475569", padding: "8px 0", textAlign: "center" }}>
+                          Contact admin to {plan.plan === "enterprise" || (plan.plan === "pro" && key === "free") ? "downgrade" : "upgrade"}
+                        </div>
                       )}
                     </div>
                   );
