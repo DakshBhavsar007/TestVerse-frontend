@@ -323,6 +323,7 @@ export default function FeatureTest() {
   const [planErr, setPlanErr] = useState("");
 
   const wsRef = useRef(null);
+  const pollJobRef = useRef(null); // Ref so connectWS can call pollJob without circular dep
 
   // ── Plan check ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -340,25 +341,53 @@ export default function FeatureTest() {
       .catch(() => setPlanOk(false));
   }, [user, authFetch]);
 
-  // ── WebSocket connect ──────────────────────────────────────────────────────
+  // ── WebSocket connect ──────────────────────────────────────────────────
   const connectWS = useCallback((jid) => {
     const ws = new WebSocket(`${WS}/feature-test/${jid}/ws`);
     wsRef.current = ws;
+
+    // Safety: if WS never delivers "done" in 5 minutes, fall back to polling
+    const safetyTimer = setTimeout(() => {
+      if (ws.readyState !== WebSocket.CLOSED) ws.close();
+      setLog(l => [...l, { ts: new Date().toISOString(), msg: "⚠️ WS timeout — switching to poll mode..." }]);
+      pollJobRef.current?.(jid);
+    }, 5 * 60 * 1000);
 
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data);
 
-        // Log messages
+        // ── Server ping — update last-status line only
+        if (data.type === "ping") {
+          setLog(l => {
+            const last = l[l.length - 1];
+            const msg = `⏳ Still running... (${data.status})`;
+            // Avoid duplicate pings flooding the log — replace last ping if it was also a ping
+            if (last && last._ping) return [...l.slice(0, -1), { ts: new Date().toISOString(), msg, _ping: true }];
+            return [...l, { ts: new Date().toISOString(), msg, _ping: true }];
+          });
+          return;
+        }
+
+        // ── Backend says: use poll (multi-worker hit different instance)
+        if (data.use_poll) {
+          clearTimeout(safetyTimer);
+          setLog(l => [...l, { ts: new Date().toISOString(), msg: "🔄 Switching to poll mode..." }]);
+          ws.close();
+          pollJobRef.current?.(jid);
+          return;
+        }
+
+        // ── Log messages
         if (data.message || data.msg) {
           const ts = new Date().toISOString();
           setLog(l => [...l, { ts, msg: data.message || data.msg }]);
         }
 
-        // Log entries in snapshot
+        // ── Log entries in snapshot
         if (data.log?.length) setLog(data.log);
 
-        // Partial or full results
+        // ── Partial or full results
         if (data.feature_result) {
           setResults(prev => {
             const idx = prev.findIndex(r => r.feature === data.feature_result.feature);
@@ -374,8 +403,9 @@ export default function FeatureTest() {
           setResults(data.partial_results);
         }
 
-        // Done
+        // ── Done
         if (data.done || data.type === "done") {
+          clearTimeout(safetyTimer);
           const result = data.result;
           if (result) {
             setResults(result.results || []);
@@ -385,11 +415,12 @@ export default function FeatureTest() {
           ws.close();
         }
 
-        // Snapshot
+        // ── Snapshot
         if (data.type === "snapshot") {
           if (data.partial_results?.length) setResults(data.partial_results);
           if (data.log?.length) setLog(data.log);
           if (data.done && data.result) {
+            clearTimeout(safetyTimer);
             setResults(data.result.results || []);
             setSummary(data.result);
             setPhase("done");
@@ -399,11 +430,29 @@ export default function FeatureTest() {
       } catch { /* ignore parse errors */ }
     };
 
+    // ── Error — fall back to polling
     ws.onerror = () => {
-      setLog(l => [...l, { ts: new Date().toISOString(), msg: "WebSocket error — polling..." }]);
-      pollJob(jid);
+      clearTimeout(safetyTimer);
+      setLog(l => [...l, { ts: new Date().toISOString(), msg: "⚠️ WebSocket error — switching to poll mode..." }]);
+      pollJobRef.current?.(jid);
     };
-  }, []);
+
+    // ── CRITICAL: onclose — fall back to polling if not already done
+    // This fires when Render's reverse proxy closes the idle WS connection.
+    ws.onclose = (event) => {
+      clearTimeout(safetyTimer);
+      setPhase(prev => {
+        if (prev === "done" || prev === "error") return prev; // already finished
+        // WS died before we got a result — switch to polling
+        setLog(l => [...l, {
+          ts: new Date().toISOString(),
+          msg: `🔄 Connection closed (code ${event.code}) — switching to poll mode...`,
+        }]);
+        pollJobRef.current?.(jid);
+        return "running"; // keep spinner visible
+      });
+    };
+  }, []); // pollJob accessed via pollJobRef — no dep needed
 
   // ── Poll fallback ──────────────────────────────────────────────────────────
   const pollJob = useCallback((jid) => {
@@ -412,6 +461,7 @@ export default function FeatureTest() {
         const res = await authFetch(`${API}/feature-test/${jid}`);
         const data = await res.json();
         if (data.partial_results?.length) setResults(data.partial_results);
+        if (data.log?.length) setLog(data.log);
         if (data.status === "completed") {
           setResults(data.results || []);
           setSummary(data);
@@ -425,6 +475,9 @@ export default function FeatureTest() {
       } catch { clearInterval(iv); }
     }, 3000);
   }, [authFetch]);
+
+  // Keep ref in sync so connectWS can always access the latest version
+  pollJobRef.current = pollJob;
 
   // ── Start test ─────────────────────────────────────────────────────────────
   const handleRun = async () => {
