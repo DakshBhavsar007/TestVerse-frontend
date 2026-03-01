@@ -266,7 +266,7 @@ function UserMenu({ user, onLogout }) {
 }
 
 // ─── Scrolling nav strip with groups ────────────────────────────────────────
-function NavStrip({ location, systemRole, pendingInvites, user }) {
+function NavStrip({ location, systemRole, pendingInvites, user, userPlan }) {
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const [activeGroupOpen, setActiveGroupOpen] = useState(null);
   const dropRef = useRef(null);
@@ -281,10 +281,10 @@ function NavStrip({ location, systemRole, pendingInvites, user }) {
     <div style={{ display: "flex", alignItems: "center", gap: 2 }} ref={dropRef}>
       {NAV_GROUPS.map(group => {
         const filteredItems = group.items.filter(i => {
-          if (i.label === "System Admin" && user?.email !== "admin@testverse.com") return false;
-          if (i.label === "Feature Test" && user?.email !== "admin@testverse.com") return false;
-          if (i.label === "Site Audit" && user?.email !== "admin@testverse.com") return false;
-          if (i.label === "Live Checker" && user?.email !== "admin@testverse.com") return false;
+          if (i.label === "System Admin" && systemRole !== "admin") return false;
+          if (i.label === "Feature Test" && userPlan !== "enterprise" && systemRole !== "admin") return false;
+          if (i.label === "Site Audit" && userPlan !== "enterprise" && systemRole !== "admin") return false;
+          if (i.label === "Live Checker" && userPlan !== "enterprise" && systemRole !== "admin") return false;
           return true;
         });
 
@@ -392,6 +392,7 @@ export default function Navbar({ user, onLogout }) {
   const [scrolled, setScrolled] = useState(false);
   const [systemRole, setSystemRole] = useState(null);
   const [pendingInvites, setPendingInvites] = useState(0);
+  const [userPlan, setUserPlan] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -415,6 +416,11 @@ export default function Navbar({ user, onLogout }) {
     if (!user) return;
 
     // Fetch global role
+    authFetch(`${API_BASE}/billing/my-plan`)
+      .then(r => r.json())
+      .then(d => setUserPlan(d.plan))
+      .catch(() => {});
+
     authFetch(`${API_BASE}/rbac/my-role`)
       .then(r => r.json())
       .then(d => setSystemRole(d.role))
@@ -504,7 +510,7 @@ export default function Navbar({ user, onLogout }) {
 
         {/* ── Nav groups ─────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <NavStrip location={location} systemRole={systemRole} pendingInvites={pendingInvites} user={user} />
+          <NavStrip location={location} systemRole={systemRole} pendingInvites={pendingInvites} user={user} userPlan={userPlan} />
         </div>
 
         {/* ── Right side ─────────────────────────────────────────────── */}
