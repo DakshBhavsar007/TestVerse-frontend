@@ -282,9 +282,9 @@ function NavStrip({ location, systemRole, pendingInvites, user, userPlan }) {
       {NAV_GROUPS.map(group => {
         const filteredItems = group.items.filter(i => {
           if (i.label === "System Admin" && systemRole !== "admin") return false;
-          if (i.label === "Feature Test" && userPlan !== "enterprise" && systemRole !== "admin") return false;
-          if (i.label === "Site Audit" && userPlan !== "enterprise" && systemRole !== "admin") return false;
-          if (i.label === "Live Checker" && userPlan !== "enterprise" && systemRole !== "admin") return false;
+          if (i.label === "Feature Test" && userPlan !== "enterprise") return false;
+          if (i.label === "Site Audit" && systemRole !== "admin") return false;
+          if (i.label === "Live Checker" && systemRole !== "admin") return false;
           return true;
         });
 
