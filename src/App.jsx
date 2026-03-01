@@ -45,6 +45,8 @@ import TestVerseAudit from "./pages/testverse-audit";
 import LiveChecker from "./pages/LiveChecker";
 // Phase 8F — Human-Like Feature Testing
 import FeatureTest from "./pages/FeatureTest";
+// Phase 8G — Data Spy
+import DataSpy from "./pages/DataSpy";
 
 function PrivateRoute({ children }) {
   const { user, loading, logout } = useAuth();
@@ -122,6 +124,7 @@ export default function App() {
           <Route path="/audit" element={<PrivateRoute><TestVerseAudit /></PrivateRoute>} />
           <Route path="/live-check" element={<PrivateRoute><LiveChecker /></PrivateRoute>} />
           <Route path="/feature-test" element={<PrivateRoute><FeatureTest /></PrivateRoute>} />
+          <Route path="/data-spy" element={<PrivateRoute><DataSpy /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

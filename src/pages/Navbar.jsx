@@ -12,7 +12,9 @@ const NAV_GROUPS = [
       { to: "/trends", icon: "↗", label: "Trends" },
       { to: "/diff", icon: "◫", label: "Difference" },
       { to: "/activity", icon: "〰", label: "Activity" },
+      { to: "/data-spy", icon: "🕵️", label: "Data Spy" },
       { to: "/ai", icon: "✨", label: "AI Insights" },
+      { to: "/data-audit", icon: "🛡️", label: "Data Audit" },
     ],
   },
   {
@@ -283,6 +285,8 @@ function NavStrip({ location, systemRole, pendingInvites, user, userPlan }) {
         const filteredItems = group.items.filter(i => {
           if (i.label === "System Admin" && systemRole !== "admin") return false;
           if (i.label === "Feature Test" && userPlan !== "enterprise") return false;
+          if (i.label === "Data Audit" && userPlan !== "enterprise" && userPlan !== "pro") return false;
+          if (i.label === "Data Spy" && !["pro","enterprise"].includes(userPlan)) return false;
           if (i.label === "Site Audit" && systemRole !== "admin") return false;
           if (i.label === "Live Checker" && systemRole !== "admin") return false;
           return true;
