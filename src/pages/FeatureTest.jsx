@@ -178,12 +178,22 @@ export default function FeatureTest() {
   const pollJobRef = useRef(null);
 
   // ── Admin check ─────────────────────────────────────────────────────────────
+  // FIX: accept any field that could contain the role value, and treat
+  // "admin" OR "system_admin" as valid admin roles.
   useEffect(() => {
     if (!user) return;
     authFetch(`${API}/rbac/my-role`)
       .then(r => r.json())
-      .then(d => setIsAdmin(d.role === "admin"))
-      .catch(() => setIsAdmin(false));
+      .then(d => {
+        console.log("[FeatureTest] RBAC response:", d); // ← debug: check browser console
+        // Normalise: the endpoint might return { role }, { user_role }, { my_role }, etc.
+        const role = (d.role || d.user_role || d.my_role || "").toLowerCase();
+        setIsAdmin(role === "admin" || role === "system_admin");
+      })
+      .catch((err) => {
+        console.error("[FeatureTest] RBAC check failed:", err);
+        setIsAdmin(false);
+      });
   }, [user, authFetch]);
 
   // ── Poll fallback ──────────────────────────────────────────────────────────
@@ -195,7 +205,8 @@ export default function FeatureTest() {
         if (data.partial_results?.length) setResults(data.partial_results);
         if (data.log?.length) setLog(data.log);
         if (data.status === "completed") {
-          setResults(data.results || []);
+          // FIX: backend returns feature_results (not results) at the top level
+          setResults(data.feature_results || data.results || []);
           setSummary(data);
           setPhase("done");
           clearInterval(iv);
@@ -222,6 +233,7 @@ export default function FeatureTest() {
     ws.onmessage = (ev) => {
       try {
         const d = JSON.parse(ev.data);
+
         if (d.type === "ping") {
           setLog(l => {
             const last = l[l.length - 1];
@@ -231,28 +243,55 @@ export default function FeatureTest() {
           });
           return;
         }
+
         if (d.use_poll) { clearTimeout(safety); ws.close(); pollJobRef.current?.(jid); return; }
+
         if (d.message || d.msg) setLog(l => [...l, { ts: new Date().toISOString(), msg: d.message || d.msg }]);
         if (d.log?.length) setLog(d.log);
+
         if (d.feature_result) setResults(prev => {
           const idx = prev.findIndex(r => r.feature === d.feature_result.feature);
           if (idx >= 0) { const c = [...prev]; c[idx] = d.feature_result; return c; }
           return [...prev, d.feature_result];
         });
+
         if (d.partial_results?.length) setResults(d.partial_results);
+
+        // FIX: handle snapshot — this fires when WS connects AFTER job finishes
+        if (d.type === "snapshot") {
+          if (d.log?.length) setLog(d.log);
+          if (d.partial_results?.length) setResults(d.partial_results);
+          if (d.done) {
+            clearTimeout(safety);
+            if (d.result) {
+              setResults(d.result.feature_results || d.result.results || []);
+              setSummary(d.result);
+            }
+            setPhase("done");
+            ws.close();
+          }
+          return; // don't fall through to the done check below
+        }
+
         if (d.done || d.type === "done") {
           clearTimeout(safety);
-          if (d.result) { setResults(d.result.results || []); setSummary(d.result); }
-          setPhase("done"); ws.close();
+          if (d.result) {
+            setResults(d.result.feature_results || d.result.results || []);
+            setSummary(d.result);
+          }
+          setPhase("done");
+          ws.close();
         }
-        if (d.type === "snapshot") {
-          if (d.partial_results?.length) setResults(d.partial_results);
-          if (d.log?.length) setLog(d.log);
-          if (d.done && d.result) { clearTimeout(safety); setResults(d.result.results || []); setSummary(d.result); setPhase("done"); ws.close(); }
-        }
+
       } catch { }
     };
-    ws.onerror = () => { clearTimeout(safety); setLog(l => [...l, { ts: new Date().toISOString(), msg: "⚠️ WS error — polling..." }]); pollJobRef.current?.(jid); };
+
+    ws.onerror = () => {
+      clearTimeout(safety);
+      setLog(l => [...l, { ts: new Date().toISOString(), msg: "⚠️ WS error — polling..." }]);
+      pollJobRef.current?.(jid);
+    };
+
     ws.onclose = (ev) => {
       clearTimeout(safety);
       setPhase(prev => {
