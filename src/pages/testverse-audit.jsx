@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../hooks/useAuth";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 /* ─── TestVerse Full Audit Dashboard ─────────────────────────────────────────
    Audits every route, button, feature, and API endpoint of TestVerse.
@@ -24,90 +27,90 @@ const PALETTE = {
 // ── All TestVerse features to audit ─────────────────────────────────────────
 const AUDIT_ITEMS = [
   // Authentication
-  { id: "auth_login",      phase: "Auth",     feature: "Login Page",              route: "/login",           type: "page",    checks: ["page_renders", "form_present", "submit_works"] },
-  { id: "auth_reset",      phase: "Auth",     feature: "Reset Password",           route: "/reset-password",  type: "page",    checks: ["page_renders", "form_present"] },
-  { id: "auth_google",     phase: "Auth",     feature: "Google OAuth",             route: "/login",           type: "button",  checks: ["button_present", "oauth_configured"] },
+  { id: "auth_login", phase: "Auth", feature: "Login Page", route: "/login", type: "page", checks: ["page_renders", "form_present", "submit_works"] },
+  { id: "auth_reset", phase: "Auth", feature: "Reset Password", route: "/reset-password", type: "page", checks: ["page_renders", "form_present"] },
+  { id: "auth_google", phase: "Auth", feature: "Google OAuth", route: "/login", type: "button", checks: ["button_present", "oauth_configured"] },
 
   // Core Testing
-  { id: "home_test",       phase: "Core",     feature: "Run Basic Test (Home)",    route: "/",                type: "action",  checks: ["form_present", "submit_button", "ws_connect"] },
-  { id: "home_login_test", phase: "Core",     feature: "Run Login Test",           route: "/",                type: "action",  checks: ["login_form_toggle", "credential_fields"] },
-  { id: "result_page",     phase: "Core",     feature: "Test Result Page",         route: "/result/:testId",  type: "page",    checks: ["page_renders", "score_ring", "live_ws", "checks_display"] },
-  { id: "result_pdf",      phase: "Core",     feature: "Export PDF Button",        route: "/result/:testId",  type: "button",  checks: ["button_present", "api_endpoint"] },
-  { id: "result_share",    phase: "Core",     feature: "Copy Share Link",          route: "/result/:testId",  type: "button",  checks: ["button_present", "share_token"] },
-  { id: "result_progress", phase: "Core",     feature: "Progress Tracker",         route: "/result/:testId",  type: "feature", checks: ["all_15_checks_shown", "live_updates"] },
+  { id: "home_test", phase: "Core", feature: "Run Basic Test (Home)", route: "/", type: "action", checks: ["form_present", "submit_button", "ws_connect"] },
+  { id: "home_login_test", phase: "Core", feature: "Run Login Test", route: "/", type: "action", checks: ["login_form_toggle", "credential_fields"] },
+  { id: "result_page", phase: "Core", feature: "Test Result Page", route: "/result/:testId", type: "page", checks: ["page_renders", "score_ring", "live_ws", "checks_display"] },
+  { id: "result_pdf", phase: "Core", feature: "Export PDF Button", route: "/result/:testId", type: "button", checks: ["button_present", "api_endpoint"] },
+  { id: "result_share", phase: "Core", feature: "Copy Share Link", route: "/result/:testId", type: "button", checks: ["button_present", "share_token"] },
+  { id: "result_progress", phase: "Core", feature: "Progress Tracker", route: "/result/:testId", type: "feature", checks: ["all_15_checks_shown", "live_updates"] },
 
   // History & Dashboard
-  { id: "history",         phase: "Phase 1",  feature: "Test History",             route: "/history",         type: "page",    checks: ["page_renders", "api_fetch", "list_display"] },
-  { id: "dashboard",       phase: "Phase 1",  feature: "Dashboard",                route: "/dashboard",       type: "page",    checks: ["page_renders", "stats_visible"] },
+  { id: "history", phase: "Phase 1", feature: "Test History", route: "/history", type: "page", checks: ["page_renders", "api_fetch", "list_display"] },
+  { id: "dashboard", phase: "Phase 1", feature: "Dashboard", route: "/dashboard", type: "page", checks: ["page_renders", "stats_visible"] },
 
   // Scheduling
-  { id: "schedules",       phase: "Phase 2",  feature: "Schedules Page",           route: "/schedules",       type: "page",    checks: ["page_renders", "create_button", "cron_form"] },
-  { id: "schedules_run",   phase: "Phase 2",  feature: "Trigger Scheduled Test",   route: "/schedules",       type: "action",  checks: ["run_now_button"] },
+  { id: "schedules", phase: "Phase 2", feature: "Schedules Page", route: "/schedules", type: "page", checks: ["page_renders", "create_button", "cron_form"] },
+  { id: "schedules_run", phase: "Phase 2", feature: "Trigger Scheduled Test", route: "/schedules", type: "action", checks: ["run_now_button"] },
 
   // Share
-  { id: "share_public",    phase: "Phase 3",  feature: "Public Share View",        route: "/share/:token",    type: "page",    checks: ["page_renders", "no_auth_required"] },
+  { id: "share_public", phase: "Phase 3", feature: "Public Share View", route: "/share/:token", type: "page", checks: ["page_renders", "no_auth_required"] },
 
   // Trends & Diff
-  { id: "trends",          phase: "Phase 4",  feature: "Trends Page",              route: "/trends",          type: "page",    checks: ["page_renders", "chart_visible"] },
-  { id: "diff",            phase: "Phase 4",  feature: "Diff Comparison",          route: "/diff",            type: "page",    checks: ["page_renders", "select_tests"] },
+  { id: "trends", phase: "Phase 4", feature: "Trends Page", route: "/trends", type: "page", checks: ["page_renders", "chart_visible"] },
+  { id: "diff", phase: "Phase 4", feature: "Diff Comparison", route: "/diff", type: "page", checks: ["page_renders", "select_tests"] },
 
   // Teams
-  { id: "teams",           phase: "Phase 5",  feature: "Teams Management",         route: "/teams",           type: "page",    checks: ["page_renders", "invite_button", "member_list"] },
-  { id: "slack",           phase: "Phase 5",  feature: "Slack Integration",        route: "/slack",           type: "page",    checks: ["page_renders", "webhook_form", "test_notif_btn"] },
+  { id: "teams", phase: "Phase 5", feature: "Teams Management", route: "/teams", type: "page", checks: ["page_renders", "invite_button", "member_list"] },
+  { id: "slack", phase: "Phase 5", feature: "Slack Integration", route: "/slack", type: "page", checks: ["page_renders", "webhook_form", "test_notif_btn"] },
 
   // API Keys
-  { id: "api_keys",        phase: "Phase 6a", feature: "API Key Management",       route: "/apikeys",         type: "page",    checks: ["page_renders", "generate_key_btn", "copy_key"] },
+  { id: "api_keys", phase: "Phase 6a", feature: "API Key Management", route: "/apikeys", type: "page", checks: ["page_renders", "generate_key_btn", "copy_key"] },
 
   // Bulk Testing
-  { id: "bulk_test",       phase: "Phase 6b", feature: "Bulk URL Testing",         route: "/bulk",            type: "page",    checks: ["page_renders", "url_upload", "run_bulk_btn"] },
+  { id: "bulk_test", phase: "Phase 6b", feature: "Bulk URL Testing", route: "/bulk", type: "page", checks: ["page_renders", "url_upload", "run_bulk_btn"] },
 
   // White Label
-  { id: "whitelabel",      phase: "Phase 6c", feature: "White Label Config",       route: "/whitelabel",      type: "page",    checks: ["page_renders", "logo_upload", "color_pickers"] },
+  { id: "whitelabel", phase: "Phase 6c", feature: "White Label Config", route: "/whitelabel", type: "page", checks: ["page_renders", "logo_upload", "color_pickers"] },
 
   // Analytics
-  { id: "analytics",       phase: "Phase 6d", feature: "Analytics Dashboard",      route: "/analytics",       type: "page",    checks: ["page_renders", "charts_visible", "filters"] },
+  { id: "analytics", phase: "Phase 6d", feature: "Analytics Dashboard", route: "/analytics", type: "page", checks: ["page_renders", "charts_visible", "filters"] },
 
   // Phase 7A
-  { id: "roles",           phase: "Phase 7A", feature: "Role Management (RBAC)",   route: "/roles",           type: "page",    checks: ["page_renders", "assign_role_btn"] },
-  { id: "notifications",   phase: "Phase 7A", feature: "Notification Rules",       route: "/notifications",   type: "page",    checks: ["page_renders", "create_rule_btn", "rule_conditions"] },
-  { id: "templates",       phase: "Phase 7A", feature: "Test Templates",           route: "/templates",       type: "page",    checks: ["page_renders", "save_template", "load_template"] },
-  { id: "monitoring",      phase: "Phase 7A", feature: "Uptime Monitoring",        route: "/monitoring",      type: "page",    checks: ["page_renders", "add_monitor_btn", "incident_view"] },
+  { id: "roles", phase: "Phase 7A", feature: "Role Management (RBAC)", route: "/roles", type: "page", checks: ["page_renders", "assign_role_btn"] },
+  { id: "notifications", phase: "Phase 7A", feature: "Notification Rules", route: "/notifications", type: "page", checks: ["page_renders", "create_rule_btn", "rule_conditions"] },
+  { id: "templates", phase: "Phase 7A", feature: "Test Templates", route: "/templates", type: "page", checks: ["page_renders", "save_template", "load_template"] },
+  { id: "monitoring", phase: "Phase 7A", feature: "Uptime Monitoring", route: "/monitoring", type: "page", checks: ["page_renders", "add_monitor_btn", "incident_view"] },
 
   // Phase 7B
-  { id: "reporting",       phase: "Phase 7B", feature: "Reporting",                route: "/reporting",       type: "page",    checks: ["page_renders", "export_report_btn"] },
-  { id: "billing",         phase: "Phase 7B", feature: "Billing",                  route: "/billing",         type: "page",    checks: ["page_renders", "plan_display", "upgrade_btn"] },
-  { id: "compliance",      phase: "Phase 7B", feature: "Compliance",               route: "/compliance",      type: "page",    checks: ["page_renders", "audit_log_visible"] },
-  { id: "devtools",        phase: "Phase 7B", feature: "Dev Tools",                route: "/devtools",        type: "page",    checks: ["page_renders", "api_playground"] },
+  { id: "reporting", phase: "Phase 7B", feature: "Reporting", route: "/reporting", type: "page", checks: ["page_renders", "export_report_btn"] },
+  { id: "billing", phase: "Phase 7B", feature: "Billing", route: "/billing", type: "page", checks: ["page_renders", "plan_display", "upgrade_btn"] },
+  { id: "compliance", phase: "Phase 7B", feature: "Compliance", route: "/compliance", type: "page", checks: ["page_renders", "audit_log_visible"] },
+  { id: "devtools", phase: "Phase 7B", feature: "Dev Tools", route: "/devtools", type: "page", checks: ["page_renders", "api_playground"] },
 
   // Phase 8A – AI
-  { id: "ai_status",       phase: "Phase 8A", feature: "AI Status Check",          route: "/ai",              type: "api",     checks: ["gemini_configured", "endpoint_alive"] },
-  { id: "ai_suggestions",  phase: "Phase 8A", feature: "AI Test Suggestions",      route: "/ai",              type: "action",  checks: ["tab_renders", "run_btn", "suggestions_display"] },
-  { id: "ai_anomalies",    phase: "Phase 8A", feature: "AI Anomaly Detection",     route: "/ai",              type: "action",  checks: ["tab_renders", "run_btn", "anomaly_display"] },
-  { id: "ai_nl_test",      phase: "Phase 8A", feature: "NL → API Test Generator",  route: "/ai",              type: "action",  checks: ["tab_renders", "prompt_input", "generate_btn", "result_display"] },
-  { id: "ai_chat",         phase: "Phase 8A", feature: "AI Chat Assistant",        route: "/ai",              type: "action",  checks: ["tab_renders", "chat_input", "send_btn", "streaming_response"] },
+  { id: "ai_status", phase: "Phase 8A", feature: "AI Status Check", route: "/ai", type: "api", checks: ["gemini_configured", "endpoint_alive"] },
+  { id: "ai_suggestions", phase: "Phase 8A", feature: "AI Test Suggestions", route: "/ai", type: "action", checks: ["tab_renders", "run_btn", "suggestions_display"] },
+  { id: "ai_anomalies", phase: "Phase 8A", feature: "AI Anomaly Detection", route: "/ai", type: "action", checks: ["tab_renders", "run_btn", "anomaly_display"] },
+  { id: "ai_nl_test", phase: "Phase 8A", feature: "NL → API Test Generator", route: "/ai", type: "action", checks: ["tab_renders", "prompt_input", "generate_btn", "result_display"] },
+  { id: "ai_chat", phase: "Phase 8A", feature: "AI Chat Assistant", route: "/ai", type: "action", checks: ["tab_renders", "chat_input", "send_btn", "streaming_response"] },
 
   // Phase 8B – Collaboration
-  { id: "activity",        phase: "Phase 8B", feature: "Activity Feed",            route: "/activity",        type: "page",    checks: ["page_renders", "real_time_updates"] },
-  { id: "comments",        phase: "Phase 8B", feature: "Comments on Results",      route: "/result/:testId",  type: "feature", checks: ["comments_panel", "add_comment_btn", "delete_comment"] },
-  { id: "approvals",       phase: "Phase 8B", feature: "Approval Workflow",        route: "/result/:testId",  type: "feature", checks: ["approval_panel", "approve_btn", "reject_btn"] },
+  { id: "activity", phase: "Phase 8B", feature: "Activity Feed", route: "/activity", type: "page", checks: ["page_renders", "real_time_updates"] },
+  { id: "comments", phase: "Phase 8B", feature: "Comments on Results", route: "/result/:testId", type: "feature", checks: ["comments_panel", "add_comment_btn", "delete_comment"] },
+  { id: "approvals", phase: "Phase 8B", feature: "Approval Workflow", route: "/result/:testId", type: "feature", checks: ["approval_panel", "approve_btn", "reject_btn"] },
 
   // Phase 8C – CI/CD
-  { id: "cicd_settings",   phase: "Phase 8C", feature: "CI/CD Settings",           route: "/cicd/settings",   type: "page",    checks: ["page_renders", "provider_select", "save_config"] },
-  { id: "cicd_triggers",   phase: "Phase 8C", feature: "CI/CD Trigger History",    route: "/cicd/triggers",   type: "page",    checks: ["page_renders", "trigger_list"] },
+  { id: "cicd_settings", phase: "Phase 8C", feature: "CI/CD Settings", route: "/cicd/settings", type: "page", checks: ["page_renders", "provider_select", "save_config"] },
+  { id: "cicd_triggers", phase: "Phase 8C", feature: "CI/CD Trigger History", route: "/cicd/triggers", type: "page", checks: ["page_renders", "trigger_list"] },
 
   // Phase 8E – OpenAPI
-  { id: "openapi_import",  phase: "Phase 8E", feature: "OpenAPI Import",           route: "/openapi-import",  type: "page",    checks: ["page_renders", "upload_spec_btn", "parse_endpoints"] },
+  { id: "openapi_import", phase: "Phase 8E", feature: "OpenAPI Import", route: "/openapi-import", type: "page", checks: ["page_renders", "upload_spec_btn", "parse_endpoints"] },
 
   // Profile & Admin
-  { id: "profile",         phase: "System",   feature: "User Profile",             route: "/profile",         type: "page",    checks: ["page_renders", "edit_form", "save_btn"] },
-  { id: "admin",           phase: "System",   feature: "Admin Dashboard",          route: "/admin",           type: "page",    checks: ["page_renders", "user_list", "role_manage"] },
+  { id: "profile", phase: "System", feature: "User Profile", route: "/profile", type: "page", checks: ["page_renders", "edit_form", "save_btn"] },
+  { id: "admin", phase: "System", feature: "Admin Dashboard", route: "/admin", type: "page", checks: ["page_renders", "user_list", "role_manage"] },
 
   // API Health
-  { id: "api_health",      phase: "System",   feature: "Backend Health Endpoint",  route: "/health",          type: "api",     checks: ["status_ok", "db_connected", "scheduler_running"] },
-  { id: "api_ws",          phase: "System",   feature: "WebSocket (Live Tests)",   route: "ws://…/ws/{id}",   type: "api",     checks: ["ws_handshake", "event_streaming", "disconnect_clean"] },
+  { id: "api_health", phase: "System", feature: "Backend Health Endpoint", route: "/health", type: "api", checks: ["status_ok", "db_connected", "scheduler_running"] },
+  { id: "api_ws", phase: "System", feature: "WebSocket (Live Tests)", route: "ws://…/ws/{id}", type: "api", checks: ["ws_handshake", "event_streaming", "disconnect_clean"] },
 
   // Navbar
-  { id: "navbar",          phase: "System",   feature: "Navigation Bar",           route: "*",                type: "ui",      checks: ["all_links_present", "logout_btn", "user_info"] },
+  { id: "navbar", phase: "System", feature: "Navigation Bar", route: "*", type: "ui", checks: ["all_links_present", "logout_btn", "user_info"] },
 ];
 
 // Simulate audit — randomised realistic results
@@ -142,7 +145,7 @@ const PHASES = [...new Set(AUDIT_ITEMS.map(i => i.phase))];
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const statusColor = { pass: PALETTE.green, fail: PALETTE.red, warn: PALETTE.yellow };
-const statusIcon  = { pass: "✓", fail: "✗", warn: "⚠" };
+const statusIcon = { pass: "✓", fail: "✗", warn: "⚠" };
 const statusLabel = { pass: "Pass", fail: "Fail", warn: "Warning" };
 
 function StatusPill({ status, small }) {
@@ -165,9 +168,9 @@ function ScoreRing({ score, size = 100 }) {
   return (
     <div style={{ position: "relative", width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={size*0.06} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={size*0.06}
-          strokeDasharray={circ} strokeDashoffset={circ * (1 - score/100)}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={size * 0.06} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={size * 0.06}
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - score / 100)}
           strokeLinecap="round" style={{ transition: "stroke-dashoffset 1.5s ease", filter: `drop-shadow(0 0 6px ${color}80)` }} />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -180,6 +183,7 @@ function ScoreRing({ score, size = 100 }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function TestVerseAudit() {
+  const { authFetch } = useAuth();
   const [auditState, setAuditState] = useState("idle"); // idle | running | done
   const [results, setResults] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -189,7 +193,38 @@ export default function TestVerseAudit() {
   const [aiReport, setAiReport] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("audit"); // audit | report
+  const [isAdmin, setIsAdmin] = useState(null); // null=loading
   const reportRef = useRef(null);
+
+  // ── Admin gate ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    authFetch(`${API_BASE}/rbac/my-role`)
+      .then(r => r.json())
+      .then(d => setIsAdmin(d.role === "admin"))
+      .catch(() => setIsAdmin(false));
+  }, [authFetch]);
+
+  if (isAdmin === null) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#060911", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 32, height: 32, border: "3px solid rgba(99,102,241,0.2)", borderTopColor: "#6366f1", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#060911", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans',sans-serif", textAlign: "center", padding: 40 }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>👑</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", marginBottom: 8 }}>Admin Only Feature</h2>
+        <p style={{ color: "#94a3b8", fontSize: 14, maxWidth: 400, lineHeight: 1.7 }}>
+          Site Audit is available to <strong style={{ color: "#f59e0b" }}>System Administrators</strong> only.<br />
+          Contact <strong style={{ color: "#818cf8" }}>admin@testverse.com</strong> for access.
+        </p>
+      </div>
+    );
+  }
 
   // Run audit sequentially with realistic delays
   async function runAudit() {
@@ -230,9 +265,9 @@ export default function TestVerseAudit() {
 
 Audit Summary:
 - Total Features Audited: ${results.length}
-- Passing: ${totalPass} (${Math.round(totalPass/results.length*100)}%)
-- Warnings: ${totalWarn} (${Math.round(totalWarn/results.length*100)}%)
-- Failing: ${totalFail} (${Math.round(totalFail/results.length*100)}%)
+- Passing: ${totalPass} (${Math.round(totalPass / results.length * 100)}%)
+- Warnings: ${totalWarn} (${Math.round(totalWarn / results.length * 100)}%)
+- Failing: ${totalFail} (${Math.round(totalFail / results.length * 100)}%)
 
 Detailed Results per Feature:
 ${JSON.stringify(summary, null, 2)}

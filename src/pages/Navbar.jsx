@@ -283,6 +283,8 @@ function NavStrip({ location, systemRole, pendingInvites, user }) {
         const filteredItems = group.items.filter(i => {
           if (i.label === "System Admin" && user?.email !== "admin@testverse.com") return false;
           if (i.label === "Feature Test" && user?.email !== "admin@testverse.com") return false;
+          if (i.label === "Site Audit" && user?.email !== "admin@testverse.com") return false;
+          if (i.label === "Live Checker" && user?.email !== "admin@testverse.com") return false;
           return true;
         });
 
