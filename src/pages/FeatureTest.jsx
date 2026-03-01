@@ -1,22 +1,20 @@
 /**
  * FeatureTest.jsx — Human-Like Feature Testing  (Enterprise plan only)
  *
- * UI matches screenshot:
- *  • Two tabs: Basic Audit | Login Automation
- *  • Prominent Website URL + Username/Email + Password fields
- *  • Quick-check pills below (Uptime Monitor, Speed Analysis, SSL Check, etc.)
- *  • Live terminal log + per-feature score rings on run
+ * - Login Automation only (Basic Audit removed — backend only tests post-login features)
+ * - Access gate: backend enforces enterprise plan via 403; frontend shows UpgradeLock on 403
+ * - Live WebSocket progress + polling fallback
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
-const WS = API.replace(/^http/, "ws");
+const WS  = API.replace(/^http/, "ws");
 
 // ── Feature cosmetics ──────────────────────────────────────────────────────────
 const FEATURE_META = {
   task_manager:  { label: "Task Manager",   emoji: "✅", color: "#22c55e" },
-  byte_battle:   { label: "Byte Battle",    emoji: "⚔️", color: "#f97316" },
+  byte_battle:   { label: "Byte Battle",    emoji: "⚔️",  color: "#f97316" },
   shop:          { label: "Shop / Store",   emoji: "🛍️", color: "#a78bfa" },
   leaderboard:   { label: "Leaderboard",    emoji: "🏆", color: "#eab308" },
   search:        { label: "Search",         emoji: "🔍", color: "#38bdf8" },
@@ -28,10 +26,10 @@ const FEATURE_META = {
 
 // ── Score Ring ─────────────────────────────────────────────────────────────────
 function ScoreRing({ score = 0, size = 60 }) {
-  const r = size / 2 - 8;
-  const circ = 2 * Math.PI * r;
+  const r      = size / 2 - 8;
+  const circ   = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
-  const color = score >= 80 ? "#22c55e" : score >= 50 ? "#eab308" : "#ef4444";
+  const color  = score >= 80 ? "#22c55e" : score >= 50 ? "#eab308" : "#ef4444";
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={7} />
@@ -53,15 +51,15 @@ function LiveLog({ log }) {
   useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [log]);
   return (
     <div ref={ref} style={{
-      background: "#060810", border: "1px solid rgba(99,102,241,0.18)",
-      borderRadius: 10, padding: "12px 14px", maxHeight: 180,
-      overflowY: "auto", fontFamily: "'Courier New',monospace", fontSize: 12, lineHeight: 1.7,
+      background:"#060810", border:"1px solid rgba(99,102,241,0.18)",
+      borderRadius:10, padding:"12px 14px", maxHeight:220,
+      overflowY:"auto", fontFamily:"'Courier New',monospace", fontSize:12, lineHeight:1.7,
     }}>
-      {log.length === 0 && <span style={{ color: "#1e293b" }}>◻ Waiting for test engine…</span>}
+      {log.length === 0 && <span style={{ color:"#1e293b" }}>◻ Waiting for test engine…</span>}
       {log.map((e, i) => (
-        <div key={i} style={{ color: "#94a3b8", display: "flex", gap: 8 }}>
-          <span style={{ color: "#334155", flexShrink: 0 }}>{e.ts ? e.ts.slice(11,19) : ""}</span>
-          <span style={{ color: "#6366f1" }}>▶</span>
+        <div key={i} style={{ color:"#94a3b8", display:"flex", gap:8 }}>
+          <span style={{ color:"#334155", flexShrink:0 }}>{e.ts ? e.ts.slice(11,19) : ""}</span>
+          <span style={{ color:"#6366f1" }}>▶</span>
           <span>{e.msg}</span>
         </div>
       ))}
@@ -72,9 +70,9 @@ function LiveLog({ log }) {
 // ── Feature result card ────────────────────────────────────────────────────────
 function FeatureCard({ result, delay = 0 }) {
   const [open, setOpen] = useState(false);
-  const meta = FEATURE_META[result.feature] || { emoji: "🔧", label: result.label || result.feature, color: "#6366f1" };
-  const STATUS_COL = { pass: "#22c55e", partial: "#eab308", fail: "#ef4444", skip: "#475569" };
-  const col = STATUS_COL[result.status] || "#475569";
+  const meta      = FEATURE_META[result.feature] || { emoji:"🔧", label: result.label || result.feature, color:"#6366f1" };
+  const STATUS_COL = { pass:"#22c55e", partial:"#eab308", fail:"#ef4444", skip:"#475569" };
+  const col        = STATUS_COL[result.status] || "#475569";
   return (
     <div style={{ background:`${col}10`, border:`1px solid ${col}44`, borderRadius:12, overflow:"hidden", animation:`slideUp 0.3s ease ${delay}s both` }}>
       <div onClick={() => setOpen(o => !o)} style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 16px", cursor:"pointer" }}>
@@ -83,7 +81,7 @@ function FeatureCard({ result, delay = 0 }) {
           <div style={{ fontWeight:700, fontSize:14, color:"#f1f5f9" }}>{meta.label}</div>
           <div style={{ fontSize:11, color:"#64748b", marginTop:1 }}>{result.message}</div>
         </div>
-        <ScoreRing score={result.score} size={54} />
+        <ScoreRing score={result.score ?? 0} size={54} />
         <span style={{ color:"#475569", fontSize:16, marginLeft:4 }}>{open ? "▲" : "▼"}</span>
       </div>
       {open && (
@@ -130,7 +128,7 @@ function SummaryBanner({ data, onReset }) {
   );
 }
 
-// ── Upgrade screen (non-enterprise users) ─────────────────────────────────────
+// ── Upgrade screen ────────────────────────────────────────────────────────────
 function UpgradeLock() {
   return (
     <div style={{ minHeight:"60vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:40 }}>
@@ -144,56 +142,31 @@ function UpgradeLock() {
   );
 }
 
-// ─── Quick-check pills ────────────────────────────────────────────────────────
-const QUICK_CHECKS = [
-  { icon: "🌐", label: "Uptime Monitor" },
-  { icon: "⚡", label: "Speed Analysis" },
-  { icon: "🔒", label: "SSL Check" },
-  { icon: "🔗", label: "Broken Links" },
-  { icon: "📱", label: "Mobile Friendly" },
-  { icon: "🛠",  label: "JS Errors" },
-];
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Main component
 // ══════════════════════════════════════════════════════════════════════════════
 export default function FeatureTest() {
   const { authFetch, user } = useAuth();
 
-  const [tab, setTab]       = useState("login"); // "basic" | "login"
   const [url, setUrl]       = useState("");
   const [email, setEmail]   = useState("");
   const [password, setPass] = useState("");
 
-  const [phase, setPhase]     = useState("idle"); // idle|running|done|error
+  const [phase, setPhase]     = useState("idle"); // idle | running | done | error
   const [log, setLog]         = useState([]);
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
   const [errMsg, setErrMsg]   = useState("");
 
-  // ── FIX: check enterprise PLAN not admin ROLE ────────────────────────────
-  // The backend gate (_require_enterprise) checks billing plan, not RBAC role.
-  // Old code checked role==="admin" which blocked all non-admin enterprise users.
-  const [hasAccess, setHasAccess] = useState(null); // null=loading
+  // ── ACCESS GATE ────────────────────────────────────────────────────────────
+  // Strategy: default to TRUE (show the form) so enterprise users never get
+  // blocked by a billing API mismatch. The backend itself enforces the 403 for
+  // non-enterprise users — if that happens we flip hasAccess to false and show
+  // the UpgradeLock screen. This is simpler and more reliable.
+  const [hasAccess, setHasAccess] = useState(true);
 
   const wsRef      = useRef(null);
   const pollJobRef = useRef(null);
-
-  useEffect(() => {
-    if (!user) return;
-    authFetch(`${API}/billing/my-plan`)
-      .then(r => r.json())
-      .then(d => {
-        // support { plan }, { current_plan }, { subscription } field names
-        const plan = (d.plan || d.current_plan || d.subscription || "").toLowerCase();
-        setHasAccess(plan === "enterprise");
-      })
-      .catch(() => {
-        // If billing endpoint is unreachable let the user try —
-        // the backend will reject non-enterprise with a 403.
-        setHasAccess(true);
-      });
-  }, [user, authFetch]);
 
   // ── Poll fallback ──────────────────────────────────────────────────────────
   const pollJob = useCallback((jid) => {
@@ -201,10 +174,13 @@ export default function FeatureTest() {
       try {
         const res  = await authFetch(`${API}/feature-test/${jid}`);
         const data = await res.json();
+        if (!res.ok) { clearInterval(iv); return; }
         if (data.partial_results?.length) setResults(data.partial_results);
         if (data.log?.length) setLog(data.log);
         if (data.status === "completed") {
-          setResults(data.feature_results || data.results || []);
+          // backend spreads result fields at top level via resp.update(result)
+          const feats = data.feature_results || data.results || [];
+          setResults(feats);
           setSummary(data);
           setPhase("done");
           clearInterval(iv);
@@ -223,6 +199,7 @@ export default function FeatureTest() {
     const ws = new WebSocket(`${WS}/feature-test/${jid}/ws`);
     wsRef.current = ws;
 
+    // Safety net: if WS never delivers a done frame, fall back to polling
     const safety = setTimeout(() => {
       ws.close();
       setLog(l => [...l, { ts: new Date().toISOString(), msg: "⚠️ WS timeout — switching to poll..." }]);
@@ -233,33 +210,38 @@ export default function FeatureTest() {
       try {
         const d = JSON.parse(ev.data);
 
-        // ping — update status line only
+        // ── ping: keep-alive, just update status ticker ──────────────────────
         if (d.type === "ping") {
           setLog(l => {
             const last = l[l.length - 1];
-            const msg  = `⏳ Still running… (${d.status})`;
-            if (last?._ping) return [...l.slice(0, -1), { ts: new Date().toISOString(), msg, _ping: true }];
-            return [...l, { ts: new Date().toISOString(), msg, _ping: true }];
+            const msg  = `⏳ Still running… (${d.log_count ?? 0} log lines)`;
+            if (last?._ping) return [...l.slice(0,-1), { ts: new Date().toISOString(), msg, _ping:true }];
+            return [...l, { ts: new Date().toISOString(), msg, _ping:true }];
           });
           return;
         }
 
-        // server says use poll (multi-worker miss)
+        // ── server says switch to poll (multi-worker miss) ───────────────────
         if (d.use_poll) {
           clearTimeout(safety); ws.close(); pollJobRef.current?.(jid); return;
         }
 
-        // ── snapshot: ONLY message when WS connects after job already finished
+        // ── snapshot: fired immediately on connect — covers "job already done" case
         if (d.type === "snapshot") {
-          if (d.log?.length)             setLog(d.log);
-          if (d.partial_results?.length) setResults(d.partial_results);
+          if (d.log?.length)              setLog(d.log);
+          if (d.partial_results?.length)  setResults(d.partial_results);
           if (d.done) {
             clearTimeout(safety);
             if (d.result) {
               setResults(d.result.feature_results || d.result.results || []);
               setSummary(d.result);
+            } else if (d.error) {
+              setErrMsg(d.error);
+              setPhase("error");
+              ws.close();
+              return;
             } else {
-              setSummary({ overall_score: 0, summary: "Test completed." });
+              setSummary({ overall_score:0, summary:"Test completed with no results." });
             }
             setPhase("done");
             ws.close();
@@ -267,10 +249,11 @@ export default function FeatureTest() {
           return; // never fall through
         }
 
-        // progress messages
+        // ── progress messages ────────────────────────────────────────────────
         if (d.message || d.msg)
           setLog(l => [...l, { ts: new Date().toISOString(), msg: d.message || d.msg }]);
         if (d.log?.length) setLog(d.log);
+
         if (d.feature_result) {
           setResults(prev => {
             const idx = prev.findIndex(r => r.feature === d.feature_result.feature);
@@ -280,19 +263,22 @@ export default function FeatureTest() {
         }
         if (d.partial_results?.length) setResults(d.partial_results);
 
-        // done
+        // ── done ─────────────────────────────────────────────────────────────
         if (d.done || d.type === "done") {
           clearTimeout(safety);
-          if (d.result) {
-            setResults(d.result.feature_results || d.result.results || []);
-            setSummary(d.result);
+          if (d.error) {
+            setErrMsg(d.error); setPhase("error");
+          } else {
+            if (d.result) {
+              setResults(d.result.feature_results || d.result.results || []);
+              setSummary(d.result);
+            }
+            setPhase("done");
           }
-          if (d.error) { setErrMsg(d.error); setPhase("error"); }
-          else          setPhase("done");
           ws.close();
         }
 
-      } catch { /* malformed frame */ }
+      } catch { /* malformed frame — ignore */ }
     };
 
     ws.onerror = () => {
@@ -317,21 +303,28 @@ export default function FeatureTest() {
     if (!url.trim() || phase === "running") return;
     setPhase("running"); setLog([]); setResults([]); setSummary(null); setErrMsg("");
 
-    const body = { url: url.trim() };
-    if (tab === "login" && email.trim()) {
-      body.email    = email.trim();
-      body.password = password.trim();
-    }
+    const body = {
+      url:      url.trim(),
+      email:    email.trim() || undefined,
+      password: password || undefined,
+    };
 
     try {
-      const res  = await authFetch(`${API}/feature-test/run`, { method: "POST", body: JSON.stringify(body) });
+      const res  = await authFetch(`${API}/feature-test/run`, { method:"POST", body:JSON.stringify(body) });
       const data = await res.json();
+
       if (!res.ok) {
-        if (res.status === 403) setHasAccess(false); // show upgrade screen
-        setErrMsg(data.detail || "Failed to start test");
-        setPhase("error");
+        if (res.status === 403) {
+          // Backend confirmed non-enterprise — flip gate and show upgrade screen
+          setHasAccess(false);
+          setPhase("idle");
+        } else {
+          setErrMsg(data.detail || "Failed to start test");
+          setPhase("error");
+        }
         return;
       }
+
       setLog([{ ts: new Date().toISOString(), msg: `▶ Job started: ${data.job_id}` }]);
       connectWS(data.job_id);
     } catch (e) {
@@ -353,117 +346,145 @@ export default function FeatureTest() {
         @keyframes slideUp { from { opacity:0;transform:translateY(14px) } to { opacity:1;transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         @keyframes spin    { to { transform:rotate(360deg) } }
-        input:focus,select:focus { outline:none; }
+        input:focus { outline:none; }
         ::-webkit-scrollbar { width:5px; background:#060810 }
         ::-webkit-scrollbar-thumb { background:#1e2840; border-radius:4px }
         .run-btn:hover  { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 8px 28px rgba(99,102,241,.5)!important; }
         .run-btn:active { transform:scale(0.98); }
-        .tab-btn:hover  { background:rgba(255,255,255,0.05)!important; }
-        .quick-pill:hover { background:rgba(99,102,241,0.1)!important; border-color:rgba(99,102,241,0.35)!important; }
       `}</style>
 
       <div style={{ maxWidth:720, margin:"0 auto" }}>
 
         {/* Header */}
         <div style={{ textAlign:"center", marginBottom:28, animation:"slideUp 0.35s ease" }}>
-          <div style={{ fontSize:13, color:"#475569", marginBottom:6, letterSpacing:"0.08em", fontWeight:700, textTransform:"uppercase" }}>
+          <div style={{ fontSize:13, color:"#475569", letterSpacing:"0.08em", fontWeight:700, textTransform:"uppercase" }}>
             No setup required.
           </div>
         </div>
 
-        {/* Loading */}
-        {hasAccess === null && (
-          <div style={{ textAlign:"center", padding:60, color:"#475569" }}>
-            <div style={{ width:32, height:32, margin:"0 auto 10px", border:"3px solid rgba(99,102,241,.2)", borderTopColor:"#6366f1", borderRadius:"50%", animation:"spin 0.9s linear infinite" }} />
-            Checking access…
-          </div>
-        )}
+        {/* Non-enterprise gate */}
+        {!hasAccess && <UpgradeLock />}
 
-        {/* Not enterprise */}
-        {hasAccess === false && <UpgradeLock />}
-
-        {/* Enterprise — show full UI */}
-        {hasAccess === true && (
+        {/* ── Main UI ── */}
+        {hasAccess && (
           <>
             <div style={{
               background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.09)",
               borderRadius:20, overflow:"hidden", marginBottom:20, animation:"slideUp 0.4s ease",
             }}>
 
-              {/* Tab strip */}
-              <div style={{ display:"flex", borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-                {[{ key:"basic", label:"Basic Audit" },{ key:"login", label:"Login Automation" }].map(t => (
-                  <button key={t.key} className="tab-btn" onClick={() => setTab(t.key)} style={{
-                    flex:1, padding:"14px 0", border:"none",
-                    background: tab===t.key ? "rgba(99,102,241,0.12)" : "transparent",
-                    color:      tab===t.key ? "#c4b5fd" : "#6b7280",
-                    fontWeight: tab===t.key ? 700 : 500,
-                    fontSize:14, cursor:"pointer",
-                    borderBottom: tab===t.key ? "2px solid #6366f1" : "2px solid transparent",
-                    transition:"all 0.15s", fontFamily:"inherit",
-                  }}>{t.label}</button>
-                ))}
+              {/* Tab strip — Login Automation only */}
+              <div style={{ borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+                <div style={{
+                  padding:"14px 0", textAlign:"center", fontWeight:700, fontSize:14,
+                  color:"#c4b5fd", borderBottom:"2px solid #6366f1",
+                  background:"rgba(99,102,241,0.12)",
+                }}>
+                  Login Automation
+                </div>
               </div>
 
-              {/* IDLE: form */}
+              {/* ── IDLE: form ── */}
               {phase === "idle" && (
                 <div style={{ padding:"28px 28px 24px" }}>
+
+                  {/* Website URL */}
                   <div style={{ marginBottom:16 }}>
-                    <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>WEBSITE URL</div>
-                    <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com/login"
+                    <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>
+                      WEBSITE / LOGIN URL
+                    </div>
+                    <input
+                      value={url} onChange={e => setUrl(e.target.value)}
+                      placeholder="https://example.com/login"
                       style={{ width:"100%", padding:"13px 16px", borderRadius:10, boxSizing:"border-box", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"#f1f5f9", fontSize:14, fontFamily:"inherit", transition:"border-color 0.2s" }}
                       onFocus={e => e.target.style.borderColor="rgba(99,102,241,0.5)"}
-                      onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"} />
+                      onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"}
+                    />
                   </div>
 
-                  {tab === "login" && (<>
-                    <div style={{ marginBottom:16 }}>
-                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>USERNAME / EMAIL</div>
-                      <input value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com"
-                        style={{ width:"100%", padding:"13px 16px", borderRadius:10, boxSizing:"border-box", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"#f1f5f9", fontSize:14, fontFamily:"inherit", transition:"border-color 0.2s" }}
-                        onFocus={e => e.target.style.borderColor="rgba(99,102,241,0.5)"}
-                        onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"} />
+                  {/* Credentials */}
+                  <div style={{ marginBottom:16 }}>
+                    <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>
+                      USERNAME / EMAIL
                     </div>
-                    <div style={{ marginBottom:20 }}>
-                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>PASSWORD</div>
-                      <input type="password" value={password} onChange={e => setPass(e.target.value)} placeholder="••••••••"
-                        style={{ width:"100%", padding:"13px 16px", borderRadius:10, boxSizing:"border-box", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"#f1f5f9", fontSize:14, fontFamily:"inherit", transition:"border-color 0.2s" }}
-                        onFocus={e => e.target.style.borderColor="rgba(99,102,241,0.5)"}
-                        onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"} />
+                    <input
+                      value={email} onChange={e => setEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      style={{ width:"100%", padding:"13px 16px", borderRadius:10, boxSizing:"border-box", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"#f1f5f9", fontSize:14, fontFamily:"inherit", transition:"border-color 0.2s" }}
+                      onFocus={e => e.target.style.borderColor="rgba(99,102,241,0.5)"}
+                      onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom:24 }}>
+                    <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:8 }}>
+                      PASSWORD
                     </div>
-                  </>)}
+                    <input
+                      type="password" value={password} onChange={e => setPass(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ width:"100%", padding:"13px 16px", borderRadius:10, boxSizing:"border-box", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"#f1f5f9", fontSize:14, fontFamily:"inherit", transition:"border-color 0.2s" }}
+                      onFocus={e => e.target.style.borderColor="rgba(99,102,241,0.5)"}
+                      onBlur={e  => e.target.style.borderColor="rgba(255,255,255,0.1)"}
+                    />
+                  </div>
+
+                  {/* Info hint */}
+                  <div style={{ marginBottom:20, padding:"10px 14px", borderRadius:8, background:"rgba(99,102,241,0.07)", border:"1px solid rgba(99,102,241,0.2)", color:"#94a3b8", fontSize:12, lineHeight:1.6 }}>
+                    🤖 The test engine will <strong style={{ color:"#c4b5fd" }}>log in to your site</strong>, then automatically discover and test every feature available after login — buttons, forms, navigation, modals, and more.
+                  </div>
 
                   {errMsg && (
-                    <div style={{ marginBottom:16, padding:"10px 14px", borderRadius:8, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#ef4444", fontSize:13 }}>⚠️ {errMsg}</div>
+                    <div style={{ marginBottom:16, padding:"10px 14px", borderRadius:8, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#ef4444", fontSize:13 }}>
+                      ⚠️ {errMsg}
+                    </div>
                   )}
 
-                  <button className="run-btn" onClick={handleRun} disabled={!url.trim()} style={{
-                    width:"100%", padding:"14px 0", borderRadius:12, fontSize:15, fontWeight:700, border:"none",
-                    cursor: url.trim() ? "pointer" : "not-allowed",
-                    background: url.trim() ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,0.2)",
-                    color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                    boxShadow: url.trim() ? "0 4px 20px rgba(99,102,241,0.35)" : "none",
-                    transition:"all 0.2s", fontFamily:"inherit",
-                  }}>
-                    {tab === "login" ? "Run Login Test ⚡" : "Run Basic Audit ⚡"}
+                  <button
+                    className="run-btn"
+                    onClick={handleRun}
+                    disabled={!url.trim()}
+                    style={{
+                      width:"100%", padding:"14px 0", borderRadius:12, fontSize:15, fontWeight:700, border:"none",
+                      cursor: url.trim() ? "pointer" : "not-allowed",
+                      background: url.trim() ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,0.2)",
+                      color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                      boxShadow: url.trim() ? "0 4px 20px rgba(99,102,241,0.35)" : "none",
+                      transition:"all 0.2s", fontFamily:"inherit",
+                    }}
+                  >
+                    Run Login Automation ⚡
                   </button>
+
+                  {/* Feature pills */}
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center", marginTop:20 }}>
+                    {["🔐 Login Flow","🖱️ Button Testing","📝 Form Validation","🔗 Nav Links","📦 Feature Discovery","🐛 JS Error Scan"].map(label => (
+                      <div key={label} style={{ padding:"6px 14px", borderRadius:20, background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.08)", fontSize:12, color:"#6b7280", fontWeight:500 }}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* RUNNING */}
+              {/* ── RUNNING ── */}
               {phase === "running" && (
                 <div style={{ padding:"24px 28px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
                     <div style={{ width:34, height:34, borderRadius:"50%", border:"3px solid rgba(99,102,241,.2)", borderTop:"3px solid #6366f1", animation:"spin 1s linear infinite", flexShrink:0 }} />
                     <div>
-                      <div style={{ fontWeight:700, fontSize:15, color:"#f1f5f9" }}>Analyzing & Testing Features…</div>
-                      <div style={{ fontSize:12, color:"#475569", marginTop:2 }}>{log.length > 0 ? log[log.length-1].msg : "Initializing…"}</div>
+                      <div style={{ fontWeight:700, fontSize:15, color:"#f1f5f9" }}>Logging in & Testing Features…</div>
+                      <div style={{ fontSize:12, color:"#475569", marginTop:2 }}>
+                        {log.length > 0 ? log.filter(e => !e._ping).slice(-1)[0]?.msg || "Initializing…" : "Launching browser…"}
+                      </div>
                     </div>
                   </div>
                   <LiveLog log={log} />
                   {results.length > 0 && (
                     <div style={{ marginTop:20 }}>
-                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Results so far ({results.length})</div>
+                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>
+                        Results so far ({results.length})
+                      </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {results.map((r,i) => <FeatureCard key={r.feature} result={r} delay={i*0.05} />)}
                       </div>
@@ -472,23 +493,27 @@ export default function FeatureTest() {
                 </div>
               )}
 
-              {/* ERROR */}
+              {/* ── ERROR ── */}
               {phase === "error" && (
                 <div style={{ padding:"28px", textAlign:"center" }}>
                   <div style={{ fontSize:38, marginBottom:8 }}>❌</div>
                   <div style={{ fontWeight:700, fontSize:16, color:"#f87171" }}>Test Failed</div>
-                  <div style={{ fontSize:13, color:"#94a3b8", marginTop:4 }}>{errMsg}</div>
-                  <button onClick={handleReset} style={{ marginTop:16, padding:"9px 22px", borderRadius:10, background:"rgba(99,102,241,0.15)", border:"1px solid rgba(99,102,241,0.3)", color:"#818cf8", fontWeight:700, fontSize:13, cursor:"pointer" }}>🔁 Try Again</button>
+                  <div style={{ fontSize:13, color:"#94a3b8", marginTop:4, maxWidth:480, margin:"8px auto 0" }}>{errMsg}</div>
+                  <button onClick={handleReset} style={{ marginTop:20, padding:"9px 22px", borderRadius:10, background:"rgba(99,102,241,0.15)", border:"1px solid rgba(99,102,241,0.3)", color:"#818cf8", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    🔁 Try Again
+                  </button>
                 </div>
               )}
 
-              {/* DONE */}
+              {/* ── DONE ── */}
               {phase === "done" && summary && (
                 <div style={{ padding:"24px 28px" }}>
                   <SummaryBanner data={summary} onReset={handleReset} />
                   {results.length > 0 ? (
                     <div>
-                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Feature Results ({results.length})</div>
+                      <div style={{ fontSize:11, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>
+                        Feature Results ({results.length})
+                      </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {results.map((r,i) => <FeatureCard key={r.feature} result={r} delay={i*0.06} />)}
                       </div>
@@ -497,27 +522,14 @@ export default function FeatureTest() {
                     <div style={{ background:"rgba(239,68,68,.08)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:24, textAlign:"center" }}>
                       <div style={{ fontSize:32, marginBottom:8 }}>🔎</div>
                       <div style={{ fontWeight:700, fontSize:15, color:"#f87171" }}>No Features Detected</div>
-                      <div style={{ fontSize:12, color:"#94a3b8", marginTop:4 }}>{summary.summary || "Try adding login credentials or check if the site requires authentication."}</div>
+                      <div style={{ fontSize:12, color:"#94a3b8", marginTop:4 }}>
+                        {summary.summary || "Try checking your login credentials or verify the URL is the correct login page."}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
             </div>
-
-            {/* Quick-check pills */}
-            {phase === "idle" && (
-              <div style={{ display:"flex", flexWrap:"wrap", gap:10, justifyContent:"center", animation:"fadeIn 0.5s ease" }}>
-                {QUICK_CHECKS.map(q => (
-                  <div key={q.label} className="quick-pill" style={{
-                    display:"flex", alignItems:"center", gap:7, padding:"9px 16px", borderRadius:24,
-                    background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.08)",
-                    fontSize:13, color:"#6b7280", cursor:"default", fontWeight:500, transition:"all 0.15s",
-                  }}>
-                    <span>{q.icon}</span>{q.label}
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
       </div>
